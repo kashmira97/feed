@@ -1,11 +1,11 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { Context } from "../Context/ContextGoogle";
-import { formatTime } from "../utils/formatTime";
+import { Context } from "../../Context/ContextGoogle";
+import { formatTime } from "../../utils/formatTime";
 import "./VideoPlayer.scss";
 import axios from "axios";
 import PropTypes from "prop-types";
 import { FaChevronUp, FaChevronDown, FaPlay, FaPause } from "react-icons/fa";
-import Popup from "../components/Popup/Popup";
+import Popup from "../Popup/Popup";
 
 function VideoPlayer({
   autoplay = false,
@@ -283,7 +283,7 @@ function VideoPlayer({
     try {
       setActiveFeed(media.feed.trim().toLowerCase());
       if (media.feed.trim().toLowerCase() === "swiper" && media.url) {
-        if (!swiperData) {
+        if (!swiperData || !swiperData.url) {
           return {
             url: null,
             text: "Please click on a Swiper Image to view",
@@ -969,7 +969,7 @@ VideoPlayer.propTypes = {
   handleFullScreen: PropTypes.func.isRequired,
   selectedOption: PropTypes.string.isRequired,
   setSelectedOption: PropTypes.func.isRequired,
-  swiperData: PropTypes.object.isRequired,
+  swiperData: PropTypes.object,
   setSwiperData: PropTypes.func.isRequired,
 };
 
