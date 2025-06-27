@@ -4,6 +4,8 @@
 
 [![video-player](https://github.com/sahilatahar/Video-Player/assets/100127570/8315e5d3-9b16-4b37-a50c-141a96f2e72e)](https://video-player-sahilatahar.netlify.app/)
 -->
+<br>
+Simple example of [embedding player](embed-player.html)
 
 Welcome to our FeedPlayer React Project! This project provides a modern and user-friendly interface for viewing a series of images and video pulled from RSS, JSON, CSV and YAML. The UI is built using Vite, ReactJS, HTML, CSS, and JavaScript. The Feed-Player is designed to be fully responsive and packed with a range of features to enhance your viewing experience with filmstrip navigation using [swiper](https://github.com/modelearth/swiper).
 
@@ -20,6 +22,17 @@ Welcome to our FeedPlayer React Project! This project provides a modern and user
 
 <!-- [JSON for video, image and feed links](src/Data/data.js) -->
 
+
+In a React app built with Vite (or similar tools like Webpack), the src folder itself is not copied to the dist folder. Instead:
+
+✅ What Happens:
+The src folder contains source files (e.g. .jsx, .tsx, .js, .ts, .css, etc.).
+
+During the build process (vite build), these files are compiled, bundled, and optimized.
+
+The output (e.g. minified JS, CSS, static assets) goes into the dist folder.
+
+Only what is explicitly imported or referenced in the code gets included in dist.
 
 ## Team Projects
 
