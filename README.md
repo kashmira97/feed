@@ -38,7 +38,9 @@ Only what is explicitly imported or referenced in the code gets included in dist
 
 Place your name here if you're working on an update.
 
-0.) Add a quick fade between slides, about half a second.
+A.) Have swiper load the first row from the Google Sheet since NASA feed only loads a few times.
+
+B.) Add a quick fade between slides, about half a second.
 
 1.) DONE: Provide the specific error than "No media available" for the second SeeClickFix link and others that don't load.  Add a CORS passthrough like we have in the view folder. - by snehit
 
@@ -183,7 +185,16 @@ yarn install --immutable --immutable-cache --check-cache
 The command above requires yarn 2 and prevents third-parties from altering the checked-in packages before submitting them. [Source](https://stackoverflow.com/questions/58482655/what-is-the-closest-to-npm-ci-in-yarn).  
 It's the equivalent to `npm ci` to avoid updating package-lock.json, which occurs with `npm install`.
 
-### 3. Start a development server (optional)
+### 3. Build the app to the dist folder
+
+```
+yarn build
+```
+
+Now refresh the current page locally to see the results.
+If you haven't, [start a server in your webroot](https://model.earth/start/steps/) containing the feed folder. Use port 8887.
+
+### 4. Start a development server (not recommended)
 
 <!--Skip this step. Port 5173 does not currently work because the files are looking for a base path containing "feed".-->
 
@@ -191,21 +202,15 @@ It's the equivalent to `npm ci` to avoid updating package-lock.json, which occur
 yarn dev
 ```
 
-Or you can skip "yarn dev" and view at [http://localhost:8887/feed/dist](http://localhost:8887/feed/dist)
+Better to avoid "yarn dev" and instead view at [http://localhost:8887/feed/](http://localhost:8887/feed/) after building.
 
 <!--
 Since we might include /feed in the base path, the FeedPlayer may not always work at: [localhost:5173/dist](http://localhost:5173/dist/)
 -->
 
-### 4. Build the app to the dist folder
 
-```
-yarn build
-```
+You can view at either: [http://localhost:8887/feed](http://localhost:8887/feed/) or [http://localhost:8887/feed/dist](http://localhost:8887/feed/dist)
 
-View at: [http://localhost:8887/feed](http://localhost:8887/feed/) and [http://localhost:8887/feed/dist](http://localhost:8887/feed/dist)
-
-After building, you may need to manually edit the index-xxxx.js and index-xxxx.css links in intro.html.
 
 ## Deploy for Review using Github Pages
 

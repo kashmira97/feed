@@ -1,16 +1,13 @@
-# Why using "yarn dev" stinks for testing hash-driven widget integration.
+### Avoid using "yarn dev" for testing hash-driven widget integration.
 
-We recommend avoiding using "yarn dev"
+We recommend avoiding using "yarn dev" since it...
 
-- Doesn't include [embedding sample](https://model.earth/feed/embed-player.html) locally.
-- Doesn't reside above Swiper.
-- Doesn't show local readme.
+&bullet; Doesn't include [embedding sample](https://model.earth/feed/embed-player.html) locally.
+&bullet; Doesn't reside above Swiper for testing hash-driven interaction.
+&bullet; Doesn't show local readme. (This text is pulled from GitHub.)
 
-Instead, use 'yarn build' and view with the swiper on the same page at:
-[http://localhost:8887/feed](http://localhost:8887/feed
-)
+Simply use 'yarn build' and view with the swiper on the same page at:
+[http://localhost:8887/feed](http://localhost:8887/feed)
 
-Start your port 8887 server with the command at:<br>
+Start your port 8887 server with the command at:
 [https://model.earth/localsite/start/steps/](https://model.earth/localsite/start/steps/)
-
-This text is not local, it's pulled from GitHub.
