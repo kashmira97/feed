@@ -59,7 +59,7 @@ function VideoPlayer({
   const imageDuration = 4;
 
   const updateURLHash = (feed, ref) => {
-    const hash = `#feed=${encodeURIComponent(feed)}&ref=${ref}`;
+    const hash = `#list=${encodeURIComponent(feed)}&ref=${ref}`;
     window.location.hash = hash;
   };
 
@@ -432,7 +432,7 @@ function VideoPlayer({
     setCurrentMediaIndex(() => {
       console.log("Move to: ", index);
       const currentURL = window.location.href.split("#")[0]; // Get the URL without the hash
-      const newHash = `feed=${activeFeed}&scene=${index + 1}`;
+      const newHash = `list=${activeFeed}&scene=${index + 1}`;
       const newURL = `${currentURL}#${newHash}`; // Append the new hash to the URL
       window.history.replaceState(null, "", newURL);
       return index;

@@ -58,12 +58,12 @@ function VideoPlayer({
     const otherParams = new URLSearchParams(); // string containing all the extra params in the URL
 
     existingParams.forEach((value, key) => {
-      if (key !== "feed" && key !== "scene") {
+      if (key !== "list" && key !== "scene") {
         otherParams.set(key, value);
       }
     });
 
-    let hash = `#feed=${encodeURIComponent(feed)}&scene=${scene + 1}`; // scene is 1-based in the URL
+    let hash = `#list=${encodeURIComponent(feed)}&scene=${scene + 1}`; // scene is 1-based in the URL
     if (otherParams.toString()) {
       hash += `&${otherParams.toString()}`;
     }
@@ -74,7 +74,7 @@ function VideoPlayer({
     const hash = window.location.hash.substring(1); // Remove the leading '#'
     const params = new URLSearchParams(hash);
     return {
-      feed: params.get("feed") || "",
+      feed: params.get("list") || "",
       scene: parseInt(params.get("scene") - 1, 10) || 0, // scene is 1-based in the URL, so we subtract 1 to make it 0-based
     };
   };

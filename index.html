@@ -118,7 +118,7 @@
             window.dispatchEvent(new Event('sessionStorageChange'));
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const currentSwiperType = hashParams.get("swiper") || "default";
-            history.replaceState(null, null, `#swiper=${currentSwiperType}&feed=nasa&scene=${index}`);
+            history.replaceState(null, null, `#swiper=${currentSwiperType}&list=nasa&scene=${index}`);
           }
         }
       }

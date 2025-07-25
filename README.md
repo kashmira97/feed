@@ -18,7 +18,7 @@ Welcome to our FeedPlayer React Project! This project provides a modern and user
 
 [Our FeedPlayer Google Sheet](https://docs.google.com/spreadsheets/d/1jQTlXWom-pXvyP9zuTcbdluyvpb43hu2h7anxhF5qlQ/edit?usp=sharing) provides the APIs loaded. 
 [View the feed json directly](view) - The FeedPlayer is being designed to convert APIs, JSON and .CSV into video-like presentations.
-[Bluesky RSS Feeds](view/#feed=bsky) - Click "Turn on CORS passthrough". &nbsp;[About Bluesky RSS](https://bsky.app/profile/todex.bsky.social/post/3kj2xcufu5q2q).
+[Bluesky RSS Feeds](view/#list=bsky) - Click "Turn on CORS passthrough". &nbsp;[About Bluesky RSS](https://bsky.app/profile/todex.bsky.social/post/3kj2xcufu5q2q).
 
 <!-- [JSON for video, image and feed links](src/Data/data.js) -->
 
@@ -64,7 +64,7 @@ DONE: Aspect ratio of video remains the same when showing landscape image.--><!-
 
 7.) DONE: When reloading retain feed's hash in the URL, and display that feed.
 To see bug, hit refresh for the following or load the link directly: 
-[Hash example for SeeClickFix](#feed=seeclickfix-311) - the hash values currently disappear when reloading. - [Rodrigo](https://github.com/devrodrigorpm)
+[Hash example for SeeClickFix](#list=seeclickfix-311) - the hash values currently disappear when reloading. - [Rodrigo](https://github.com/devrodrigorpm)
 
 8.) DONE: Load images into the FeedPlayer from our [pull from Github](../home/repo/). - Chethan
 
@@ -76,7 +76,7 @@ To see bug, hit refresh for the following or load the link directly:
 
 11.) IN PROGRESS: Pull the replies for each Bluesky post in the feed. Use the screen-grab technique that we use to grab images from news sites that are listed in the feed. Scrape the posts from the Bluesky website. Grab replies for the top 3 posts. If the process doesn't work, leave the attempt commented out. <!-- Noopur initially. This process worked initially on view page. Maybe Bluesky changed something? -->
 
-12.) DONE: List of feeds on right of player with links to /feed/view/#feed= - Kalyan
+12.) DONE: List of feeds on right of player with links to /feed/view/#list= - Kalyan
 
 13.) DONE: Hide the "link icon" in the upper right unless a video is being viewed. - Jashwanth<!-- confirm-->
 
