@@ -436,4 +436,171 @@
       align-items: center;
     }
   }
+
+  // MemberSense overlay styles
+  .membersense-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 380px;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 1500;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    animation: slideInFromRight 0.3s ease-out;
+    overflow-y: auto;
+
+    .close-overlay-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #666;
+      cursor: pointer;
+      z-index: 1600;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+        color: #333;
+      }
+    }
+
+    .membersense-overlay-content {
+      padding: 20px;
+      height: 100%;
+      box-sizing: border-box;
+      
+      // Override the normal MemberSense container styles for overlay
+      .member-sense-wrapper {
+        height: 100%;
+        padding: 0;
+        
+        .member-sense-container {
+          max-width: none;
+          width: 100%;
+          margin: 0;
+          padding-top: 40px; // Account for close button
+          
+          .member-sense-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+          }
+
+          .token-info {
+            margin-bottom: 20px;
+            
+            .token-link {
+              font-size: 14px;
+              margin-bottom: 10px;
+              display: block;
+            }
+          }
+
+          .permissions-info {
+            margin-bottom: 20px;
+            
+            h4 {
+              font-size: 14px;
+              margin-bottom: 10px;
+            }
+            
+            ul {
+              font-size: 13px;
+              padding-left: 20px;
+              
+              li {
+                margin-bottom: 5px;
+              }
+            }
+          }
+
+          .auth-container {
+            margin-bottom: 20px;
+            
+            .auth-header {
+              text-align: center;
+              margin-bottom: 20px;
+              
+              h3 {
+                font-size: 1.2rem;
+                margin: 10px 0;
+              }
+              
+              .auth-description {
+                font-size: 13px;
+                color: #666;
+              }
+            }
+          }
+
+          .server-info {
+            text-align: center;
+            
+            .server-name {
+              font-size: 1.2rem;
+              margin-bottom: 15px;
+            }
+            
+            .server-message {
+              font-size: 14px;
+              margin-bottom: 20px;
+              color: #666;
+            }
+            
+            .navigation-buttons {
+              display: flex;
+              gap: 10px;
+              justify-content: center;
+              margin-top: 20px;
+              
+              .nav-button {
+                padding: 10px 15px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: background-color 0.2s ease;
+                
+                &:hover {
+                  background-color: #0056b3;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @keyframes slideInFromRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  // Ensure FeedPlayer content is still visible when overlay is shown
+  &:has(.membersense-overlay) {
+    .app-content {
+      margin-right: 380px;
+      transition: margin-right 0.3s ease-out;
+    }
+  }
 }

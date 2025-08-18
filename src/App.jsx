@@ -50,6 +50,7 @@ function App() {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showMemberSenseOverlay, setShowMemberSenseOverlay] = useState(false);
 
   // UI state
   const [isLoading, setIsLoading] = useState(true);
@@ -105,6 +106,32 @@ function App() {
 
   useEffect(() => {
     if (isMenu) setIsMenu(false);
+  }, [currentView]);
+
+  // Hash detection effect
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash;
+      if (hash === '#members=discord') {
+        setShowMemberSenseOverlay(true);
+        // Set currentView to FeedPlayer if it's not already to ensure video is visible
+        if (currentView !== "FeedPlayer") {
+          setCurrentView("FeedPlayer");
+        }
+      } else {
+        setShowMemberSenseOverlay(false);
+      }
+    };
+
+    // Check hash on component mount
+    checkHash();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', checkHash);
+    
+    return () => {
+      window.removeEventListener('hashchange', checkHash);
+    };
   }, [currentView]);
 
   // Effects
@@ -489,6 +516,34 @@ function App() {
           </div>
         )}
         <main className={`app-content ${isTransitioning ? "fade-out" : "fade-in"}`}>{renderContent()}</main>
+        {showMemberSenseOverlay && (
+          <div className="membersense-overlay">
+            <button 
+              className="close-overlay-btn" 
+              onClick={() => {
+                setShowMemberSenseOverlay(false);
+                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+              }}
+            >
+              ×
+            </button>
+            <div className="membersense-overlay-content">
+              <MemberSense
+                onValidToken={handleLogin}
+                initialToken={token}
+                isLoading={isLoading}
+                error={error}
+                isLoggedIn={isLoggedIn}
+                isLoggingOut={isLoggingOut}
+                serverInfo={serverInfo}
+                isFullScreen={false}
+                useMockData={useMockData}
+                onToggleMockData={(value) => setUseMockData(value)}
+                handleViewChange={handleViewChange}
+              />
+            </div>
+          </div>
+        )}
         {isPopup && (
           <div className="lightbox" onClick={() => setIsPopup(null)}>
             <button className="close-btn" onClick={() => setIsPopup(null)}>
