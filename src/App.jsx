@@ -111,8 +111,10 @@ function App() {
   // Hash detection effect
   useEffect(() => {
     const checkHash = () => {
-      const hash = window.location.hash;
-      if (hash === '#members=discord') {
+      const hash = window.location.hash.substring(1); // Remove the leading '#'
+      const params = new URLSearchParams(hash);
+      
+      if (params.get('members') === 'discord') {
         setShowMemberSenseOverlay(true);
         // Set currentView to FeedPlayer if it's not already to ensure video is visible
         if (currentView !== "FeedPlayer") {
@@ -522,7 +524,16 @@ function App() {
               className="close-overlay-btn" 
               onClick={() => {
                 setShowMemberSenseOverlay(false);
-                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+                // Remove members parameter while preserving other hash parameters
+                const hash = window.location.hash.substring(1);
+                const params = new URLSearchParams(hash);
+                params.delete('members');
+                const newHash = params.toString();
+                if (newHash) {
+                  window.location.hash = '#' + newHash;
+                } else {
+                  window.history.replaceState(null, null, window.location.pathname + window.location.search);
+                }
               }}
             >
               ×

@@ -31,7 +31,7 @@ To use the MemberSense Discord Integration in production mode, you need to set u
 4. Under the bot's username, click "Copy" to copy your bot token. Keep this token secret and secure.
 5. Scroll down to the "Privileged Gateway Intents" section and enable all the checkboxes ("Presence Intent", "Server Members Intent" and "Message Content Intent").
 
-Note: The OAuth2 URL generation is primarily for inviting the bot to a server. If you're adding the bot to your own server or have other means of adding it, you may skip steps 6-10.
+Note: The OAuth2 URL generation is primarily for inviting the bot to a server. If you're adding the bot to your own server or have other means of adding it, you may skip steps 6-9.
 
 
 <!--
@@ -49,7 +49,12 @@ Before Loren revised Aug 18, 2025
    - Read Message History
 -->
 
-6. Under left side nav "OAuth2 > OAuth2 URL Generator > Scopes", give the Bot these permissions:<!-- provided by claud.ai Aug 18, 2025 -->
+6. Under left side nav "OAuth2" add a Redirect URL and select that URL in a subsequent step.
+
+http://localhost:8887/feed/#members=discord
+
+
+7. Under left side nav "OAuth2 > OAuth2 URL Generator > Scopes", give the Bot these permissions:<!-- provided by claud.ai Aug 18, 2025 -->
 
 guilds - Required to see which servers your bot/app has access to
 guilds.members.read - Required to read member information from servers
@@ -59,7 +64,7 @@ bot - If you're creating a bot application (most common for this use case)
 messages.read  - If you need to read message history (though this requires additional permissions)
 
 
-7. These "Bot Permissisons" checkboxes are REVEALED after checking the Scopes boxes above.
+9. These "Bot Permissisons" checkboxes are REVEALED after checking the Scopes boxes above.
 
 <!-- You can skip this and simply paste the integer 592896 -->
 
@@ -83,8 +88,7 @@ Additional base permissions might be needed depending on your specific use case.
 -->
 
 
-
-8. Open a new browser tab, paste the URL, and select the server <!-- model.earth for us --> where you want to add the bot.
+9. Open a new browser tab, paste the URL, and select the server <!-- model.earth for us --> where you want to add the bot.
 
 
 
