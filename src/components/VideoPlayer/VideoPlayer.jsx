@@ -6,6 +6,7 @@ import axios from "axios";
 import PropTypes from "prop-types";
 import { FaChevronUp, FaChevronDown, FaPlay, FaPause } from "react-icons/fa";
 import Popup from "../Popup/Popup";
+import Papa from "papaparse";
 
 function VideoPlayer({
   autoplay = false,
@@ -17,6 +18,19 @@ function VideoPlayer({
   swiperData,
   setSwiperData,
 }) {
+  
+  // Utility function to get the base path dynamically
+  const getBasePath = () => {
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/dist/')) {
+      return currentPath.split('/dist/')[0];
+    } else if (currentPath.includes('/feed/')) {
+      return currentPath.split('/feed/')[0] + '/feed';
+    } else {
+      // Fallback: try to detect if we're in a feed context
+      return '/feed';
+    }
+  };
   // The numbers here are the states to see in React Developer Tools
   const { mediaList, currentMedia, setCurrentMedia } = useContext(Context); // 0
   const [isPlaying, setIsPlaying] = useState(autoplay); // 1
@@ -257,20 +271,50 @@ function VideoPlayer({
     setIsLoading(true);
     const templistofMedia = {};
 
-    // Find the NASA feed
-    const nasaFeed = mediaList.find(
-      (media) => media.feed.trim().toLowerCase() === "nasa"
-    );
+    // Try to load the first available feed from the mediaList
+    let defaultFeed = null;
+    if (mediaList && mediaList.length > 0) {
+      // Get the first feed that has a URL
+      defaultFeed = mediaList.find((media) => media.url && media.url.trim());
+    }
 
-    if (nasaFeed) {
-      // Load NASA feed first
-      await loadFeed(nasaFeed, templistofMedia);
-      setLoadedFeeds(["nasa"]);
+    // Fallback to NASA feed if no other feed is available
+    if (!defaultFeed) {
+      defaultFeed = mediaList.find(
+        (media) => media.feed.trim().toLowerCase() === "nasa"
+      );
+    }
 
-      // Set initial media
-      setListofMedia(templistofMedia);
-      setSelectedMediaList(templistofMedia[nasaFeed.title]);
-      setCurrentMedia(templistofMedia[nasaFeed.title][0]);
+    if (defaultFeed) {
+      try {
+        // Load the default feed
+        await loadFeed(defaultFeed, templistofMedia);
+        setLoadedFeeds([defaultFeed.feed.trim().toLowerCase()]);
+
+        // Set initial media
+        setListofMedia(templistofMedia);
+        setSelectedMediaList(templistofMedia[defaultFeed.title]);
+        setCurrentMedia(templistofMedia[defaultFeed.title][0]);
+      } catch (error) {
+        console.error("Failed to load default feed:", error);
+        // If default feed fails and it wasn't NASA, try NASA as fallback
+        if (defaultFeed.feed.trim().toLowerCase() !== "nasa") {
+          const nasaFeed = mediaList.find(
+            (media) => media.feed.trim().toLowerCase() === "nasa"
+          );
+          if (nasaFeed) {
+            try {
+              await loadFeed(nasaFeed, templistofMedia);
+              setLoadedFeeds(["nasa"]);
+              setListofMedia(templistofMedia);
+              setSelectedMediaList(templistofMedia[nasaFeed.title]);
+              setCurrentMedia(templistofMedia[nasaFeed.title][0]);
+            } catch (nasaError) {
+              console.error("NASA fallback also failed:", nasaError);
+            }
+          }
+        }
+      }
     }
 
     setIsLoading(false);
@@ -279,7 +323,7 @@ function VideoPlayer({
   const handleGlobalError = (error, mediaTitle = "Error") => {
     console.error("Global error handler triggered:", error);
     const placeholderMedia = {
-      url: "src/assets/images/intro-landscape.jpg", // Placeholder image
+      url: `${getBasePath()}/src/assets/images/intro-landscape.jpg`, // Placeholder image
       text: error.message || "An unknown error occurred", // Use the specific error message
       title: `Failed to load ${mediaTitle}`, // Display the media title with the error
       isError: true,
@@ -399,11 +443,64 @@ function VideoPlayer({
             : [];
         }
         default:
-          return response.data.map((item) => ({
-            url: item.hdurl || item.url,
-            text: item.explanation || "No description available",
-            title: item.title,
-          }));
+          // Check if response data is CSV format (string) or JSON array
+          if (typeof response.data === 'string') {
+            // Parse CSV data using Papa Parse
+            return new Promise((resolve, reject) => {
+              Papa.parse(response.data, {
+                header: true,
+                complete: (results) => {
+                  let mediaItems = [];
+                  
+                  // Use feedFields if available to determine which columns to display
+                  if (media.feedFields && media.feedFields.trim()) {
+                    const fieldNames = media.feedFields.split(',').map(field => field.trim());
+                    mediaItems = results.data
+                      .filter((item) => Object.values(item).some(value => value && value.trim())) // Filter out completely empty rows
+                      .map((item, index) => {
+                        // Create a display object using the specified fields
+                        const displayData = {};
+                        fieldNames.forEach(field => {
+                          if (item[field]) {
+                            displayData[field] = item[field];
+                          }
+                        });
+                        
+                        return {
+                          url: item.url || item.hdurl || `${getBasePath()}/src/assets/images/intro-a.jpg`, // Use placeholder if no URL
+                          text: Object.entries(displayData).map(([key, value]) => `${key}: ${value}`).join(', ') || "No data available",
+                          title: item.Name || item.title || item[fieldNames[0]] || `Item ${index + 1}`,
+                          rawData: item, // Include raw data for potential future use
+                          displayFields: displayData
+                        };
+                      });
+                  } else {
+                    // Fallback to standard media format
+                    mediaItems = results.data
+                      .filter((item) => item.url || item.hdurl) // Filter out empty rows
+                      .map((item) => ({
+                        url: item.hdurl || item.url,
+                        text: item.explanation || item.description || "No description available",
+                        title: item.title || "No title available",
+                      }));
+                  }
+                  
+                  resolve(mediaItems);
+                },
+                error: (error) => {
+                  console.error("CSV parsing error:", error);
+                  reject(error);
+                }
+              });
+            });
+          } else {
+            // Handle JSON array format (original NASA API format)
+            return response.data.map((item) => ({
+              url: item.hdurl || item.url,
+              text: item.explanation || "No description available",
+              title: item.title,
+            }));
+          }
       }
     } catch (error) {
       console.error("Error fetching from API for", media.title, ":", error);
@@ -788,7 +885,7 @@ function VideoPlayer({
             style={{ background: "none", padding: 0 }}
           >
             <img
-              src="src/assets/images/intro-landscape.jpg"
+              src={`${getBasePath()}/src/assets/images/intro-landscape.jpg`}
               alt="Error Placeholder"
               className="placeholder-image"
               style={{ display: "block", width: "100%", height: "auto" }} // Ensure the image takes full space
@@ -840,7 +937,7 @@ function VideoPlayer({
                 ref={videoRef}
                 className="video-image video-file"
                 src={currentMedia.url}
-                poster="src/assets/images/intro-a.jpg"
+                poster={`${getBasePath()}/src/assets/images/intro-a.jpg`}
                 muted={isMute}
                 onClick={handlePlayPause}
               ></video>
@@ -870,7 +967,7 @@ function VideoPlayer({
               style={{ background: "none", padding: 0 }}
             >
               <img
-                src="src/assets/images/intro-landscape.jpg"
+                src={`${getBasePath()}/src/assets/images/intro-landscape.jpg`}
                 alt="Error Placeholder"
                 className="placeholder-image"
                 style={{ display: "block", width: "100%", height: "auto" }}
@@ -883,7 +980,7 @@ function VideoPlayer({
         ) : (
           <div className="VideoPlayer__no-media">
             <img
-              src="src/assets/images/intro-a.jpg"
+              src={`${getBasePath()}/src/assets/images/intro-a.jpg`}
               alt="Feed Player Placeholder"
               className="placeholder-image"
               style={{ display: "block", width: "100%", height: "auto" }}

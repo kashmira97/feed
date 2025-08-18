@@ -16,7 +16,8 @@ export default function ContextProvider({ children }) {
   useEffect(() => {
     const fetchMedia = async () => {
       try {
-        // Pulls from this Google Sheet: https://docs.google.com/spreadsheets/d/1jQTlXWom-pXvyP9zuTcbdluyvpb43hu2h7anxhF5qlQ/edit?usp=sharing
+        // Pulls from this main Google Sheet to get a list of feeds for our dropdown menu: 
+        // https://docs.google.com/spreadsheets/d/1jQTlXWom-pXvyP9zuTcbdluyvpb43hu2h7anxhF5qlQ/edit?usp=sharing
         // Add comments in the sheet above to request additions.
         const response = await axios.get(
           "https://docs.google.com/spreadsheets/d/e/2PACX-1vSxfv7lxikjrmro3EJYGE_134vm5HdDszZKt4uKswHhsNJ_-afSaG9RoA4oeNV656r4mTuG3wTu38pM/pub?output=csv"
@@ -37,6 +38,7 @@ export default function ContextProvider({ children }) {
                 text: row.Text,
                 description: row.Description,
                 url: row.URL,
+                feedFields: row.FeedFields,
               }));
             console.log("Fetched media: from sample sheet", feedMedia); // Log the fetched media
             setMediaList(feedMedia);
