@@ -30,7 +30,16 @@ To use the MemberSense Discord Integration in production mode, you need to set u
 3. Click the "Bot" tab in the left sidebar. Click "Add Bot" if you don't have one yet.
 4. Under the bot's username, click "Copy" to copy your bot token. Keep this token secret and secure.
 5. Scroll down to the "Privileged Gateway Intents" section and enable all the checkboxes ("Presence Intent", "Server Members Intent" and "Message Content Intent").
+
+Note: The OAuth2 URL generation is primarily for inviting the bot to a server. If you're adding the bot to your own server or have other means of adding it, you may skip steps 6-10.
+
+
+<!--
+
+Before Loren revised Aug 18, 2025
+
 6. To invite the bot to your server, go to the "OAuth2" tab in the left sidebar.
+
 7. In the "Scopes" section, select "bot" and you'll see these checkboxes:
 
 8. In the "Bot Permissions" section under OAuth2, select the following permissions:
@@ -38,30 +47,49 @@ To use the MemberSense Discord Integration in production mode, you need to set u
    - View Server Insights
    - Send Messages
    - Read Message History
-<!-- Probably leave as "Guide Install" -->
+-->
+
+6. Under left side nav "OAuth2 > OAuth2 URL Generator > Scopes", give the Bot these permissions:<!-- provided by claud.ai Aug 18, 2025 -->
+
+guilds - Required to see which servers your bot/app has access to
+guilds.members.read - Required to read member information from servers
+
+<!-- Additional scopes you might need: -->
+bot - If you're creating a bot application (most common for this use case)
+messages.read  - If you need to read message history (though this requires additional permissions)
+
+
+7. These "Bot Permissisons" checkboxes are REVEALED after checking the Scopes boxes above.
+
+<!-- You can skip this and simply paste the integer 592896 -->
+
+Copy the generated integer at the bottom of the page. 
+The integer is generated from:
+
+   - View Channels
+   - View Server Insights
+   - Send Messages
+   - Read Message History
+
+
+Probably leave as "Guide Install"
 
 <!--
 Also tried this without success:
 In Discord, found the bot user, went to its profile, clicked Add App > Add to Server, selected the server and clicked Authorize.
+
+If true (valid), include this text:
+Additional base permissions might be needed depending on your specific use case.
 -->
 
-9. Copy the generated URL at the bottom of the page. (Contains permissions integer: 592896)
-10. Open a new browser tab, paste the URL, and select the server <!-- model.earth for us --> where you want to add the bot.
 
-Note: The OAuth2 URL generation is primarily for inviting the bot to a server. If you're adding the bot to your own server or have other means of adding it, you may skip steps 6-10.
+
+8. Open a new browser tab, paste the URL, and select the server <!-- model.earth for us --> where you want to add the bot.
+
+
 
 For more detailed instructions, you can refer to the [official Discord.js guide](https://discordjs.guide/preparations/setting-up-a-bot-application.html).
 
-### Required Bot Permissions
-
-Ensure your bot has the following permissions:
-
-- View Channels
-- View Server Insights
-- Send Messages
-- Read Message History
-
-Additional base permissions might be needed depending on your specific use case.
 
 ## Installation for Developers
 
