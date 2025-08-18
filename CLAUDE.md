@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+When running feed as a folder within a common webroot, also make use of the claude.md in the webroot.
+
 ## IMPORTANT: Git Commit Policy
 
 **NEVER commit changes without explicit user request.** 
