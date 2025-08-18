@@ -42,6 +42,37 @@ export default defineConfig(({ command }) => {
           }
         },
       },
+      {
+        name: 'copy-src-assets',
+        apply: 'build',
+        writeBundle() {
+          const srcAssetsPath = path.resolve(__dirname, 'src/assets');
+          const distAssetsPath = path.resolve(__dirname, 'dist/assets');
+
+          function copyRecursive(src, dest) {
+            if (!fs.existsSync(src)) return;
+            
+            const stats = fs.statSync(src);
+            if (stats.isDirectory()) {
+              if (!fs.existsSync(dest)) {
+                fs.mkdirSync(dest, { recursive: true });
+              }
+              const items = fs.readdirSync(src);
+              items.forEach(item => {
+                copyRecursive(path.join(src, item), path.join(dest, item));
+              });
+            } else {
+              const destDir = path.dirname(dest);
+              if (!fs.existsSync(destDir)) {
+                fs.mkdirSync(destDir, { recursive: true });
+              }
+              fs.copyFileSync(src, dest);
+            }
+          }
+
+          copyRecursive(srcAssetsPath, distAssetsPath);
+        },
+      },
     ],
     base: '',
     build: {

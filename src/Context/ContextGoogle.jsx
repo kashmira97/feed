@@ -33,7 +33,7 @@ export default function ContextProvider({ children }) {
             const feedMedia = results.data
               .filter((row) => row.Text === "TRUE")
               .map((row) => ({
-                feed: row.Feed,
+                feed: row.List,
                 title: row.Title,
                 text: row.Text,
                 description: row.Description,

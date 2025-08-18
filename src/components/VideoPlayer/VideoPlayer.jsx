@@ -19,16 +19,26 @@ function VideoPlayer({
   setSwiperData,
 }) {
   
-  // Utility function to get the base path dynamically
-  const getBasePath = () => {
-    const currentPath = window.location.pathname;
-    if (currentPath.includes('/dist/')) {
-      return currentPath.split('/dist/')[0];
-    } else if (currentPath.includes('/feed/')) {
-      return currentPath.split('/feed/')[0] + '/feed';
+  // Utility function to detect if we're in dist context and adjust paths
+  const getAssetPath = (assetPath) => {
+    // Check if we're in dist context by looking at the feedplayer.js script tag
+    const scripts = document.querySelectorAll('script[src*="feedplayer.js"]');
+    const isInDist = scripts.length > 0 && scripts[0].src.includes('./assets/feedplayer.js');
+    
+    if (isInDist) {
+      // We're in dist context, remove 'src/' prefix if present
+      const cleanPath = assetPath.startsWith('src/') ? assetPath.substring(4) : assetPath;
+      return `./assets/${cleanPath}`;
     } else {
-      // Fallback: try to detect if we're in a feed context
-      return '/feed';
+      // We're outside dist context, use original path logic
+      const currentPath = window.location.pathname;
+      let basePath;
+      if (currentPath.includes('/feed/')) {
+        basePath = currentPath.split('/feed/')[0] + '/feed';
+      } else {
+        basePath = '/feed';
+      }
+      return `${basePath}/${assetPath}`;
     }
   };
   // The numbers here are the states to see in React Developer Tools
@@ -190,6 +200,7 @@ function VideoPlayer({
             setSelectedMediaList(selectedMedia);
             setCurrentMedia(selectedMedia[scene]);
             setCurrentMediaIndex(scene);
+            console.log(`%c✅ Successfully loaded feed '${selectedFeed.feed}' with ${selectedMedia.length} items from media list processing`, 'color: green; font-weight: bold');
           }
         });
       }
@@ -211,28 +222,52 @@ function VideoPlayer({
           if (!listofMedia[selectedFeed.title]) {
             loadFeed(selectedFeed, listofMedia).then(() => {
               const selectedMedia = listofMedia[selectedFeed.title];
-              if (selectedMedia && scene >= 0 && selectedMedia[scene]) {
-                setIndex(mediaList.indexOf(selectedFeed));
-                setSelectedMediaList(selectedMedia);
-                setCurrentMedia(selectedMedia[scene]);
-                setCurrentMediaIndex(scene);
+              if (selectedMedia && selectedMedia.length > 0) {
+                if (scene >= 0 && selectedMedia[scene]) {
+                  setIndex(mediaList.indexOf(selectedFeed));
+                  setSelectedMediaList(selectedMedia);
+                  setCurrentMedia(selectedMedia[scene]);
+                  setCurrentMediaIndex(scene);
+                  console.log(`%c✅ Successfully loaded feed '${selectedFeed.feed}' with ${selectedMedia.length} items`, 'color: green; font-weight: bold');
+                } else {
+                  console.warn(
+                    `Invalid scene index ${scene + 1} in URL hash for feed '${selectedFeed.feed}'. Feed has ${selectedMedia.length} items.`
+                  );
+                  // Load first item as fallback
+                  setIndex(mediaList.indexOf(selectedFeed));
+                  setSelectedMediaList(selectedMedia);
+                  setCurrentMedia(selectedMedia[0]);
+                  setCurrentMediaIndex(0);
+                }
               } else {
                 console.warn(
-                  "Invalid scene index in URL hash for the selected feed"
+                  `Feed '${selectedFeed.feed}' loaded but contains no records or data.`
                 );
               }
             });
           } else {
             // Feed is already loaded
             const selectedMedia = listofMedia[selectedFeed.title];
-            if (selectedMedia && scene >= 0 && selectedMedia[scene]) {
-              setIndex(mediaList.indexOf(selectedFeed));
-              setSelectedMediaList(selectedMedia);
-              setCurrentMedia(selectedMedia[scene]);
-              setCurrentMediaIndex(scene);
+            if (selectedMedia && selectedMedia.length > 0) {
+              if (scene >= 0 && selectedMedia[scene]) {
+                setIndex(mediaList.indexOf(selectedFeed));
+                setSelectedMediaList(selectedMedia);
+                setCurrentMedia(selectedMedia[scene]);
+                setCurrentMediaIndex(scene);
+                console.log(`%c✅ Successfully loaded feed '${selectedFeed.feed}' with ${selectedMedia.length} items (already cached)`, 'color: green; font-weight: bold');
+              } else {
+                console.warn(
+                  `Invalid scene index ${scene + 1} in URL hash for feed '${selectedFeed.feed}'. Feed has ${selectedMedia.length} items.`
+                );
+                // Load first item as fallback
+                setIndex(mediaList.indexOf(selectedFeed));
+                setSelectedMediaList(selectedMedia);
+                setCurrentMedia(selectedMedia[0]);
+                setCurrentMediaIndex(0);
+              }
             } else {
               console.warn(
-                "Invalid scene index in URL hash for the selected feed"
+                `Feed '${selectedFeed.feed}' is loaded but contains no records or data.`
               );
             }
           }
@@ -251,7 +286,7 @@ function VideoPlayer({
   useEffect(() => {
     if (mediaList && mediaList.length > 0) {
       const hash = window.location.hash;
-      if (!hash || !hash.includes("feed=")) {
+      if (!hash || !hash.includes("list=")) {
         processMediaList();
       }
     }
@@ -295,6 +330,7 @@ function VideoPlayer({
         setListofMedia(templistofMedia);
         setSelectedMediaList(templistofMedia[defaultFeed.title]);
         setCurrentMedia(templistofMedia[defaultFeed.title][0]);
+        console.log(`%c✅ Successfully loaded default feed '${defaultFeed.feed}' with ${templistofMedia[defaultFeed.title]?.length || 0} items`, 'color: green; font-weight: bold');
       } catch (error) {
         console.error("Failed to load default feed:", error);
         // If default feed fails and it wasn't NASA, try NASA as fallback
@@ -309,6 +345,7 @@ function VideoPlayer({
               setListofMedia(templistofMedia);
               setSelectedMediaList(templistofMedia[nasaFeed.title]);
               setCurrentMedia(templistofMedia[nasaFeed.title][0]);
+              console.log(`%c✅ Successfully loaded NASA fallback feed with ${templistofMedia[nasaFeed.title]?.length || 0} items`, 'color: green; font-weight: bold');
             } catch (nasaError) {
               console.error("NASA fallback also failed:", nasaError);
             }
@@ -323,7 +360,7 @@ function VideoPlayer({
   const handleGlobalError = (error, mediaTitle = "Error") => {
     console.error("Global error handler triggered:", error);
     const placeholderMedia = {
-      url: `${getBasePath()}/src/assets/images/intro-landscape.jpg`, // Placeholder image
+      url: getAssetPath('src/assets/images/intro-landscape.jpg'), // Placeholder image
       text: error.message || "An unknown error occurred", // Use the specific error message
       title: `Failed to load ${mediaTitle}`, // Display the media title with the error
       isError: true,
@@ -467,7 +504,7 @@ function VideoPlayer({
                         });
                         
                         return {
-                          url: item.url || item.hdurl || `${getBasePath()}/src/assets/images/intro-a.jpg`, // Use placeholder if no URL
+                          url: item.url || item.hdurl || getAssetPath('src/assets/images/intro-a.jpg'), // Use placeholder if no URL
                           text: Object.entries(displayData).map(([key, value]) => `${key}: ${value}`).join(', ') || "No data available",
                           title: item.Name || item.title || item[fieldNames[0]] || `Item ${index + 1}`,
                           rawData: item, // Include raw data for potential future use
@@ -856,9 +893,9 @@ function VideoPlayer({
   useEffect(() => {
     if (mediaList && mediaList.length > 0) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      if (!hashParams.has("feed")) {
+      if (!hashParams.has("list")) {
         const defaultFeed = mediaList[0]?.feed || "seeclickfix-311";
-        hashParams.set("feed", defaultFeed);
+        hashParams.set("list", defaultFeed);
         window.location.hash = `#${hashParams.toString()}`;
       }
     }
@@ -885,7 +922,7 @@ function VideoPlayer({
             style={{ background: "none", padding: 0 }}
           >
             <img
-              src={`${getBasePath()}/src/assets/images/intro-landscape.jpg`}
+              src={getAssetPath('src/assets/images/intro-landscape.jpg')}
               alt="Error Placeholder"
               className="placeholder-image"
               style={{ display: "block", width: "100%", height: "auto" }} // Ensure the image takes full space
@@ -937,7 +974,7 @@ function VideoPlayer({
                 ref={videoRef}
                 className="video-image video-file"
                 src={currentMedia.url}
-                poster={`${getBasePath()}/src/assets/images/intro-a.jpg`}
+                poster={getAssetPath('src/assets/images/intro-a.jpg')}
                 muted={isMute}
                 onClick={handlePlayPause}
               ></video>
@@ -967,7 +1004,7 @@ function VideoPlayer({
               style={{ background: "none", padding: 0 }}
             >
               <img
-                src={`${getBasePath()}/src/assets/images/intro-landscape.jpg`}
+                src={getAssetPath('src/assets/images/intro-landscape.jpg')}
                 alt="Error Placeholder"
                 className="placeholder-image"
                 style={{ display: "block", width: "100%", height: "auto" }}
@@ -980,7 +1017,7 @@ function VideoPlayer({
         ) : (
           <div className="VideoPlayer__no-media">
             <img
-              src={`${getBasePath()}/src/assets/images/intro-a.jpg`}
+              src={getAssetPath('src/assets/images/intro-a.jpg')}
               alt="Feed Player Placeholder"
               className="placeholder-image"
               style={{ display: "block", width: "100%", height: "auto" }}
@@ -1104,6 +1141,7 @@ function VideoPlayer({
                           setSelectedMediaList(listofMedia[media.title]);
                           setCurrentMedia(listofMedia[media.title][0]);
                           updateURLHash(media.feed, 0); // Update hash after loading
+                          console.log(`%c✅ Successfully loaded feed '${media.feed}' from dropdown with ${listofMedia[media.title]?.length || 0} items`, 'color: green; font-weight: bold');
                         });
                       }
                     }}
