@@ -91,6 +91,8 @@ Additional base permissions might be needed depending on your specific use case.
 9. Open a new browser tab, paste the URL, and select the server <!-- model.earth for us --> where you want to add the bot.
 
 
+10. The membersense/backend/.env file needs your "Discord Bot Token" from the Bot page above. (The integer is probably used during the bot's initial activation in Discord.)
+
 
 For more detailed instructions, you can refer to the [official Discord.js guide](https://discordjs.guide/preparations/setting-up-a-bot-application.html).
 
