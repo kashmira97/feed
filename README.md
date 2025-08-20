@@ -5,7 +5,7 @@
 [![video-player](https://github.com/sahilatahar/Video-Player/assets/100127570/8315e5d3-9b16-4b37-a50c-141a96f2e72e)](https://video-player-sahilatahar.netlify.app/)
 -->
 <br>
-Simple example of [embedding player](embed-player.html)
+Simple example of [embedding player](embed-player.html) and [Discord Placeholders](#members=discord)
 
 Welcome to our FeedPlayer React Project! This project provides a modern and user-friendly interface for viewing a series of images and video pulled from RSS, JSON, CSV and YAML. The UI is built using Vite, ReactJS, HTML, CSS, and JavaScript. The Feed-Player is designed to be fully responsive and packed with a range of features to enhance your viewing experience with filmstrip navigation using [swiper](https://github.com/modelearth/swiper).
 
@@ -195,6 +195,23 @@ Another option would be to add localsite as a [submodule](https://model.earth/lo
 - JavaScript: Adding interactivity and logic to the video player functionality.
 
 Vite is preferable to Create React App (CRA) because Vite does not rebuild the whole app whenever changes are made. It splits the app into two categories: dependencies and source code. Dependencies do not change often during the development process, so they are not rebuilt each time thanks to Vite.
+
+## Development
+
+### Build Commands
+
+- **`yarn build`** - Standard build (feed app only)
+- **`yarn build:full`** - Build with LocalSite integration (pulls latest from GitHub)
+
+### LocalSite Integration
+
+The `yarn build:full` command pulls the entire [LocalSite repository](https://github.com/ModelEarth/localsite) into `dist/localsite/` for navigation integration. The LocalSite files are:
+- ✅ **Not stored** in the feed repository 
+- ✅ **Git-ignored** (`dist/localsite/` in `.gitignore`)
+- ✅ **Always fresh** from the latest GitHub commit
+- ✅ **Available at** `http://localhost:8887/dist/localsite/` after build
+
+Use `yarn build:full` for production deployments that need LocalSite navigation components.
 
 ## Contributions
 

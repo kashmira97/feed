@@ -97,7 +97,17 @@ const MemberSense = ({
 
       await new Promise((resolve) => setTimeout(resolve, remainingTime));
 
-      if (success) {
+      if (success === "mock") {
+        console.log("Using sample Discord data");
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setValidationMessage({
+            type: "success",
+            text: "Sample Discord data loaded!",
+          });
+          setIsTransitioning(false);
+        }, 300);
+      } else if (success) {
         console.log("Token validated successfully");
         setIsTransitioning(true);
         setTimeout(() => {

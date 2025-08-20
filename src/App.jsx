@@ -233,12 +233,12 @@ function App() {
       setSessionId("12345-abcdef-67890");
       setIsLoggedIn(true);
       setServerInfo({
-        serverName: "Mocking Discord Server",
-        memberCount: 1500,
+        serverName: "Sample Discord Team",
+        memberCount: 100,
         //iconURL: "https://via.placeholder.com/48",
       });
       setIsLoading(false);
-      return true;
+      return "mock"; // Return special value for mock data
     }
 
     try {
