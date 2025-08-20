@@ -39,6 +39,7 @@ import "./App.scss";
 
 // Constants
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const DISCORD_BOT_TOKEN = import.meta.env.VITE_DISCORD_BOT_TOKEN;
 
 // Web Component Registration
 const VideoPlayerComponent = reactToWebComponent(VideoPlayer, React, ReactDOM);
@@ -237,16 +238,18 @@ function App() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      // Use environment token if available, otherwise use inputToken
+      const tokenToUse = DISCORD_BOT_TOKEN || inputToken;
+      const response = await fetch(`${API_BASE_URL}api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: inputToken }),
+        body: JSON.stringify({ token: tokenToUse }),
       });
 
       if (!response.ok) throw new Error("Login failed");
 
       const data = await response.json();
-      setToken(inputToken);
+      setToken(tokenToUse);
       setSessionId(data.sessionId);
       setServerInfo({
         serverName: data.serverName,
@@ -287,7 +290,7 @@ function App() {
 
     setIsLoggingOut(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+      const response = await fetch(`${API_BASE_URL}api/auth/logout`, {
         method: "POST",
         headers: { Authorization: sessionId },
       });

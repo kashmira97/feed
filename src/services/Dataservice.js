@@ -8,7 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
  * These functions handle actual API calls to the backend service
  */
 export const fetchMembers = async (sessionId) => {
-  const response = await fetch(`${API_BASE_URL}/members`, {
+  const response = await fetch(`${API_BASE_URL}api/members`, {
     headers: { Authorization: sessionId },
   });
   if (!response.ok) throw new Error("Failed to fetch members");
@@ -16,7 +16,7 @@ export const fetchMembers = async (sessionId) => {
 };
 
 export const fetchChannels = async (sessionId) => {
-  const response = await fetch(`${API_BASE_URL}/channels`, {
+  const response = await fetch(`${API_BASE_URL}api/channels`, {
     headers: { Authorization: sessionId },
   });
   if (!response.ok) throw new Error("Failed to fetch channels");
@@ -24,7 +24,7 @@ export const fetchChannels = async (sessionId) => {
 };
 
 export const fetchMessages = async (sessionId, channelId) => {
-  const response = await fetch(`${API_BASE_URL}/messages?channelId=${channelId}`, {
+  const response = await fetch(`${API_BASE_URL}api/messages?channelId=${channelId}`, {
     headers: { Authorization: sessionId },
   });
   if (!response.ok) throw new Error("Failed to fetch messages");

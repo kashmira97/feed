@@ -15,7 +15,10 @@
       "Bash(sed:*)",
       "Bash(claude doctor)",
       "Bash(claude config)",
-      "Bash(claude config list)"
+      "Bash(claude config list)",
+      "Bash(echo:*)",
+      "Bash(cd:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

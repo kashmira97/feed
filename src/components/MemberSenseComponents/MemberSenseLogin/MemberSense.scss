@@ -326,14 +326,62 @@
   }
   
   &.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
   }
   
   .message-icon {
     margin-right: 12px;
     flex-shrink: 0;
+  }
+}
+
+.troubleshooting-steps {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  font-size: 14px;
+  
+  h4 {
+    margin: 0 0 12px 0;
+    color: #495057;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  
+  ol {
+    margin: 0;
+    padding-left: 16px;
+    
+    li {
+      margin-bottom: 8px;
+      line-height: 1.5;
+      
+      strong {
+        color: #495057;
+      }
+      
+      ul {
+        margin: 8px 0 0 0;
+        padding-left: 16px;
+        
+        li {
+          margin-bottom: 4px;
+          
+          a {
+            color: #0366d6;
+            text-decoration: none;
+            
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+      }
+    }
   }
 }
 

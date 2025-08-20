@@ -5,6 +5,9 @@ import { Eye, EyeOff, AlertCircle, CheckCircle, Server, Users, ToggleLeft, Toggl
 import "./MemberSense.scss";
 import Spinner from "../../Spinner/Spinner";
 
+// Get environment token
+const DISCORD_BOT_TOKEN = import.meta.env.VITE_DISCORD_BOT_TOKEN;
+
 /**
  * MemberSense Component
  *
@@ -54,6 +57,12 @@ const MemberSense = ({
       setServerInfo(initialServerInfo);
       setIsTransitioning(true);
       setTimeout(() => setIsTransitioning(false), 300);
+    } else if (DISCORD_BOT_TOKEN) {
+      // Auto-set environment token if available
+      setInputToken(DISCORD_BOT_TOKEN);
+      console.log("Using environment Discord bot token");
+      // Auto-authenticate with environment token
+      setTimeout(() => handleTokenSubmit(), 100);
     } else {
       setServerInfo(null);
       setInputToken("");
@@ -81,7 +90,9 @@ const MemberSense = ({
     const validationStartTime = Date.now();
 
     try {
-      const success = await onValidToken(inputToken);
+      // Use environment token if available and no inputToken, otherwise use inputToken
+      const tokenToUse = inputToken || DISCORD_BOT_TOKEN;
+      const success = await onValidToken(tokenToUse);
       const elapsedTime = Date.now() - validationStartTime;
       const remainingTime = Math.max(0, minValidationTime - elapsedTime);
 
@@ -104,7 +115,7 @@ const MemberSense = ({
       console.error("Error validating token:", error);
       setValidationMessage({
         type: "error",
-        text: "Authentication failed. Please try again.",
+        text: "Login failed. Please check your token and try again.",
       });
       setServerInfo(null);
     } finally {
@@ -142,7 +153,9 @@ const MemberSense = ({
       <div className="auth-header">
         <Lock size={28} className="auth-icon" />
         <h3>Connect Your Server</h3>
-        <p className="auth-description">Enter your Discord bot token to access your server data</p>
+        <p className="auth-description">
+          {DISCORD_BOT_TOKEN ? "Using configured Discord bot token" : "Enter your Discord bot token to access your server data"}
+        </p>
       </div>
       <form onSubmit={handleTokenSubmit} className="token-form">
         <div className="token-input-wrapper">
@@ -161,7 +174,7 @@ const MemberSense = ({
         <button
           type="submit"
           className={`submit-btn ${isValidating ? "loading" : ""}`}
-          disabled={isValidating || (!useMockData && !inputToken.trim())}
+          disabled={isValidating || (!useMockData && !inputToken.trim() && !DISCORD_BOT_TOKEN)}
         >
           {isValidating ? "Validating..." : "Connect Server"}
         </button>
@@ -205,7 +218,7 @@ const MemberSense = ({
       <div className={`member-sense-container ${isTransitioning ? "transitioning" : ""}`}>
         <h1 className="member-sense-title">MemberSense</h1>
 
-        {!serverInfo && !useMockData && (
+        {!serverInfo && (!useMockData || validationMessage?.type === "error") && (
           <>
             <div className="token-info">
               <a
@@ -242,14 +255,33 @@ const MemberSense = ({
             {serverInfo ? renderServerInfo() : renderTokenForm()}
 
             {(validationMessage || error) && (
-              <div className={`validation-message ${validationMessage?.type || "error"}`}>
-                {validationMessage?.type === "success" ? (
-                  <CheckCircle className="message-icon" size={20} />
-                ) : (
-                  <AlertCircle className="message-icon" size={20} />
+              <>
+                <div className={`validation-message ${validationMessage?.type || "error"}`}>
+                  {validationMessage?.type === "success" ? (
+                    <CheckCircle className="message-icon" size={20} />
+                  ) : (
+                    <AlertCircle className="message-icon" size={20} />
+                  )}
+                  {validationMessage?.text || error}
+                </div>
+                
+                {(validationMessage?.type === "error" || error) && (
+                  <div className="troubleshooting-steps">
+                    <h4>Troubleshooting Steps:</h4>
+                    <ol>
+                      <li>
+                        <strong>Regenerate Discord Bot Token:</strong>
+                        <ul>
+                          <li>Go to <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer">https://discord.com/developers/applications</a></li>
+                          <li>Select your Discord application</li>
+                          <li>Go to "Bot" section</li>
+                          <li>Click "Reset Token" and copy the new token</li>
+                        </ul>
+                      </li>
+                    </ol>
+                  </div>
                 )}
-                {validationMessage?.text || error}
-              </div>
+              </>
             )}
           </>
         )}

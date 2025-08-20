@@ -54,30 +54,26 @@ Before Loren revised Aug 18, 2025
 http://localhost:8887/feed/#members=discord
 
 
-7. Under left side nav "OAuth2 > OAuth2 URL Generator > Scopes", give the Bot these permissions:<!-- provided by claud.ai Aug 18, 2025 -->
+7. Under left side nav "OAuth2 > OAuth2 URL Generator > Scopes", select these scopes:
 
-guilds - Required to see which servers your bot/app has access to
-guilds.members.read - Required to read member information from servers
+**Required Scopes:**
+- `bot` - If you're creating a bot application (most common for this use case)
+- `guilds` - Required to see which servers your bot/app has access to
+- `guilds.members.read` - Required to read member information from servers
 
-<!-- Additional scopes you might need: -->
-bot - If you're creating a bot application (most common for this use case)
-messages.read  - If you need to read message history (though this requires additional permissions)
-
-
-9. These "Bot Permissisons" checkboxes are REVEALED after checking the Scopes boxes above.
-
-<!-- You can skip this and simply paste the integer 592896 -->
-
-Copy the generated integer at the bottom of the page. 
-The integer is generated from:
-
-   - View Channels
-   - View Server Insights
-   - Send Messages
-   - Read Message History
+**Additional Scopes (for channel/message features):**
+- `messages.read` - If you need to read message history (requires additional bot permissions)
 
 
-Probably leave as "Guide Install"
+8. After selecting scopes, the "Bot Permissions" section will appear. Select these permissions:
+
+**Required Bot Permissions:**
+- View Channels
+- View Server Insights
+- Send Messages  
+- Read Message History
+
+The permissions integer generated should be: **592896**
 
 <!--
 Also tried this without success:
@@ -88,10 +84,24 @@ Additional base permissions might be needed depending on your specific use case.
 -->
 
 
-9. Open a new browser tab, paste the URL, and select the server <!-- model.earth for us --> where you want to add the bot.
+9. Copy the generated OAuth2 URL and open it in a new browser tab. Select the server where you want to add the bot and click "Authorize".
 
+10. **Important**: After authorization, you should have "Manage Server" permission on the server to access all bot features.
 
-10. The membersense/backend/.env file needs your "Discord Bot Token" from the Bot page above. (The integer is probably used during the bot's initial activation in Discord.)
+## Environment Configuration
+
+The Discord bot token must be configured in **two places**:
+
+1. **Backend Configuration**: `membersense/backend/.env`
+   ```
+   DISCORD_BOT_TOKEN=your_bot_token_here
+   ```
+
+2. **Frontend Configuration**: `feed/.env` (root level)
+   ```
+   VITE_DISCORD_BOT_TOKEN=your_bot_token_here
+   VITE_API_BASE_URL=http://localhost:3000/
+   ```
 
 
 For more detailed instructions, you can refer to the [official Discord.js guide](https://discordjs.guide/preparations/setting-up-a-bot-application.html).
@@ -118,25 +128,34 @@ To get started with the MemberSense Discord Integration frontend, follow these s
 
 ## Usage
 
-To run the development server:
+### Backend Server
 
-```
-yarn dev
-```
+1. Navigate to the backend directory:
+   ```bash
+   cd membersense/backend
+   ```
 
-This will start the Vite development server, typically at `http://localhost:5173`.
+2. Start the backend server:
+   ```bash
+   bun run src/server.js
+   ```
+   The backend will run on `http://localhost:3000`
 
-To build the project for production:
+### Frontend Development
 
-```
-yarn build
-```
+1. Navigate back to the feed root:
+   ```bash
+   cd ../..
+   ```
 
-To preview the production build:
+2. For development, build and serve:
+   ```bash
+   yarn build
+   python -m http.server 8887
+   ```
+   Then visit: `http://localhost:8887/feed/#members=discord`
 
-```
-yarn preview
-```
+**Note**: Avoid `yarn dev` - Use `yarn build` instead for proper integration with Discord API and hash-driven navigation.
 
 ## Project Structure
 
