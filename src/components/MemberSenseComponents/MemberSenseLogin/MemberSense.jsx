@@ -57,13 +57,13 @@ const MemberSense = ({
       setServerInfo(initialServerInfo);
       setIsTransitioning(true);
       setTimeout(() => setIsTransitioning(false), 300);
-    } else if (DISCORD_BOT_TOKEN) {
-      // Auto-set environment token if available
-      setInputToken(DISCORD_BOT_TOKEN);
-      console.log("Using environment Discord bot token");
-      // Auto-authenticate with environment token
-      setTimeout(() => handleTokenSubmit(), 100);
     } else {
+      // Try auto-login with backend token first
+      console.log("Attempting auto-login with backend token");
+      setTimeout(() => handleTokenSubmit(), 100);
+    }
+    
+    if (false) { // Keep this block for reference but disable it
       setServerInfo(null);
       setInputToken("");
       setValidationMessage(null);
@@ -90,9 +90,8 @@ const MemberSense = ({
     const validationStartTime = Date.now();
 
     try {
-      // Use environment token if available and no inputToken, otherwise use inputToken
-      const tokenToUse = inputToken || DISCORD_BOT_TOKEN;
-      const success = await onValidToken(tokenToUse);
+      // Pass inputToken to login function (empty string triggers auto-login)
+      const success = await onValidToken(inputToken);
       const elapsedTime = Date.now() - validationStartTime;
       const remainingTime = Math.max(0, minValidationTime - elapsedTime);
 

@@ -194,3 +194,28 @@ membersense/
 - Backend handles actual Discord token securely
 - Session IDs provide temporary access without exposing bot token
 - CORS restricts backend access to localhost during development
+
+## Token Management & Commit Safety
+
+**IMPORTANT**: The `VITE_DISCORD_BOT_TOKEN` gets embedded in the built JavaScript bundle.
+
+### Before Committing:
+1. **Always remove tokens** from `.env` before committing:
+   ```bash
+   # Remove token temporarily
+   VITE_DISCORD_BOT_TOKEN=
+   yarn build
+   # Commit the clean build
+   ```
+
+2. **After committing**, add your token back:
+   ```bash
+   # Add token back for local development
+   VITE_DISCORD_BOT_TOKEN=your_token_here
+   yarn build
+   ```
+
+### Safety Pattern:
+- Use `.env.example` with empty values for commits
+- Keep actual tokens only in local `.env` (git-ignored)
+- Always build without tokens before committing `dist/` files

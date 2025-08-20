@@ -35,8 +35,37 @@ const handleRequest = async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  // Login
-  // In server.js, update the login route:
+  // Auto-login using backend token
+  if (method === 'POST' && path === '/api/auth/auto-login') {
+    logRequest(req);
+    try {
+      const backendToken = process.env.DISCORD_BOT_TOKEN;
+      if (!backendToken) {
+        throw new Error('No Discord bot token configured on backend');
+      }
+      
+      const { client, guildInfo } = await createBot(backendToken);
+      const sessionId = nanoid();
+      sessions.set(sessionId, { bot: client, token: backendToken });
+      console.log(`Auto-login session created: ${sessionId}`);
+      return new Response(JSON.stringify({ 
+        sessionId, 
+        message: 'Auto-login successful',
+        ...guildInfo // This spreads serverName, memberCount, and iconURL into the response
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Auto-login error:', error);
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // Manual login (for custom tokens)
   if (method === 'POST' && path === '/api/auth/login') {
     logRequest(req);
     const { token } = await req.json();
@@ -44,17 +73,17 @@ const handleRequest = async (req) => {
       const { client, guildInfo } = await createBot(token);
       const sessionId = nanoid();
       sessions.set(sessionId, { bot: client, token });
-      console.log(`New session created: ${sessionId}`);
+      console.log(`Manual session created: ${sessionId}`);
       return new Response(JSON.stringify({ 
         sessionId, 
-        message: 'Logged in successfully',
+        message: 'Manual login successful',
         ...guildInfo // This spreads serverName, memberCount, and iconURL into the response
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Manual login error:', error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -13,6 +13,47 @@ When running feed as a folder within a common webroot, also make use of the clau
 - Build and test changes as needed, but do not commit automatically
 - The user controls when changes are committed to the repository
 
+## Token Management & Commit Safety
+
+**CRITICAL**: The `VITE_DISCORD_BOT_TOKEN` gets embedded in the built JavaScript bundle and will trigger GitHub push protection if committed.
+
+### Safe Commit Workflow:
+
+**Before any commit involving `dist/` folder:**
+
+1. **Temporarily remove token** from `.env`:
+   ```bash
+   # Edit .env to clear the token
+   VITE_DISCORD_BOT_TOKEN=
+   ```
+
+2. **Build without token**:
+   ```bash
+   yarn build
+   ```
+
+3. **Commit safely** - no tokens in the bundle
+
+4. **After committing, restore token** for local development:
+   ```bash
+   # Add token back to .env
+   VITE_DISCORD_BOT_TOKEN=your_actual_token_here
+   yarn build  # Rebuild for local development
+   ```
+
+### Why This Matters:
+- Vite embeds `VITE_` prefixed environment variables into the build
+- GitHub push protection scans for Discord bot tokens in commits
+- Tokens in `dist/assets/feedplayer.js` will block pushes
+- `.env` is git-ignored but `dist/` files are committed
+
+### Safety Checklist:
+- [ ] Remove `VITE_DISCORD_BOT_TOKEN` from `.env`
+- [ ] Run `yarn build` 
+- [ ] Verify no tokens in `dist/assets/feedplayer.js`
+- [ ] Commit and push
+- [ ] Restore token to `.env` for local use
+
 ## Development Commands
 
 ### Primary Development Workflow

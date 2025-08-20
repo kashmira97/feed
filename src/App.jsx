@@ -39,7 +39,9 @@ import "./App.scss";
 
 // Constants
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const DISCORD_BOT_TOKEN = import.meta.env.VITE_DISCORD_BOT_TOKEN;
+
+// Discord token will be retrieved from backend instead of being embedded
+let DISCORD_BOT_TOKEN = null;
 
 // Web Component Registration
 const VideoPlayerComponent = reactToWebComponent(VideoPlayer, React, ReactDOM);
@@ -240,18 +242,20 @@ function App() {
     }
 
     try {
-      // Use environment token if available, otherwise use inputToken
-      const tokenToUse = DISCORD_BOT_TOKEN || inputToken;
-      const response = await fetch(`${API_BASE_URL}api/auth/login`, {
+      // Try auto-login first (uses backend token), then manual if inputToken provided
+      const endpoint = inputToken ? 'api/auth/login' : 'api/auth/auto-login';
+      const body = inputToken ? JSON.stringify({ token: inputToken }) : JSON.stringify({});
+      
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: tokenToUse }),
+        body: body,
       });
 
       if (!response.ok) throw new Error("Login failed");
 
       const data = await response.json();
-      setToken(tokenToUse);
+      setToken(inputToken || 'backend-token'); // Don't expose actual token
       setSessionId(data.sessionId);
       setServerInfo({
         serverName: data.serverName,
