@@ -52,6 +52,8 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showMemberSenseOverlay, setShowMemberSenseOverlay] = useState(false);
+  const [sidePanelView, setSidePanelView] = useState(null); // "Showcase" or "DiscordViewer"
+  const [sidePanelExpanded, setSidePanelExpanded] = useState(false);
 
   // UI state
   const [isLoading, setIsLoading] = useState(true);
@@ -309,14 +311,42 @@ function App() {
   };
 
   const handleViewChange = (view) => {
-    setError("");
-    setIsTransitioning(true);
-    setIsLoading(true);
-    setTimeout(() => {
-      setCurrentView(view);
-      setIsTransitioning(false);
-      setTimeout(() => setIsLoading(false), 500);
-    }, 300);
+    if (view === "Showcase" || view === "DiscordViewer") {
+      // Show side panel for MemberSense features
+      setSidePanelView(view);
+      setCurrentView("FeedPlayer"); // Keep video player as main view
+      
+      // Load data if not already loaded
+      if (sessionId && members.length === 0 && !useMockData) {
+        setIsLoading(true);
+        Promise.all([fetchMembers(sessionId), fetchChannels(sessionId)])
+          .then(([membersData, channelsData]) => {
+            setMembers(membersData);
+            setChannels(channelsData);
+            if (channelsData.length > 0 && !selectedChannel) {
+              setSelectedChannel(channelsData[0].id);
+            }
+          })
+          .catch((error) => {
+            console.error("Error loading Discord data:", error);
+            setError("Failed to load Discord data");
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      }
+    } else {
+      // Normal view change
+      setError("");
+      setIsTransitioning(true);
+      setIsLoading(true);
+      setTimeout(() => {
+        setCurrentView(view);
+        setSidePanelView(null); // Close side panel
+        setIsTransitioning(false);
+        setTimeout(() => setIsLoading(false), 500);
+      }, 300);
+    }
   };
 
   const handleFullScreen = () => {
@@ -346,16 +376,75 @@ function App() {
     switch (currentView) {
       case "FeedPlayer":
         return (
-          <VideoPlayer
-            autoplay={true}
-            isFullScreen={isFullScreen}
-            setIsFullScreen={setIsFullScreen}
-            handleFullScreen={handleFullScreen}
-            selectedOption={selectedOption}
-            setSelectedOption={setSelectedOption}
-            swiperData={swiperData}
-            setSwiperData={setSwiperData}
-          />
+          <div className="feedplayer-container">
+            <VideoPlayer
+              autoplay={true}
+              isFullScreen={isFullScreen}
+              setIsFullScreen={setIsFullScreen}
+              handleFullScreen={handleFullScreen}
+              selectedOption={selectedOption}
+              setSelectedOption={setSelectedOption}
+              swiperData={swiperData}
+              setSwiperData={setSwiperData}
+            />
+            {sidePanelView && (
+              <div className={`membersense-side-panel ${sidePanelExpanded ? 'expanded' : ''}`}>
+                <div className="side-panel-controls">
+                  <button 
+                    className="panel-control-btn pause-btn" 
+                    onClick={() => {
+                      const video = document.querySelector('video');
+                      if (video) {
+                        if (video.paused) {
+                          video.play();
+                        } else {
+                          video.pause();
+                        }
+                      }
+                    }}
+                    title="Pause/Play Video"
+                  >
+                    ⏸️
+                  </button>
+                  <button 
+                    className="panel-control-btn expand-btn" 
+                    onClick={() => setSidePanelExpanded(!sidePanelExpanded)}
+                    title={sidePanelExpanded ? "Collapse Panel" : "Expand Panel"}
+                  >
+                    {sidePanelExpanded ? '📐' : '📏'}
+                  </button>
+                  <button 
+                    className="panel-control-btn close-btn" 
+                    onClick={() => {
+                      setSidePanelView(null);
+                      setSidePanelExpanded(false);
+                    }}
+                    title="Close Panel"
+                  >
+                    ×
+                  </button>
+                </div>
+                {sidePanelView === "Showcase" && (
+                  <MemberShowcase 
+                    token={token} 
+                    members={members} 
+                    isLoading={isLoading} 
+                    {...commonProps} 
+                  />
+                )}
+                {sidePanelView === "DiscordViewer" && (
+                  <DiscordChannelViewer
+                    channels={channels}
+                    messages={messages}
+                    selectedChannel={selectedChannel}
+                    onChannelSelect={setSelectedChannel}
+                    isLoading={isLoading}
+                    {...commonProps}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         );
       case "MemberSense":
         return (
