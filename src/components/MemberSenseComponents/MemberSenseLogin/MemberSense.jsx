@@ -192,8 +192,7 @@ const MemberSense = ({
       ) : (
         <Server size={48} className="server-icon" />
       )} */}
-      {/* <h3 className="server-name">Welcome to {serverInfo.serverName}!</h3> */}
-      <h3 className="server-name">Sample Discord Team</h3>
+      <h3 className="server-name">Welcome to {serverInfo.serverName}!</h3>
       <p className="server-message">
         You&apos;re all set to explore MemberSense features. Use the buttons to access Member Showcase and
         Discord Viewer.
