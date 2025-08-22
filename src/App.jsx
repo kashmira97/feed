@@ -382,7 +382,7 @@ function App() {
         return (
           <div className="feedplayer-container">
             <VideoPlayer
-              autoplay={true}
+              autoplay={false}
               isFullScreen={isFullScreen}
               setIsFullScreen={setIsFullScreen}
               handleFullScreen={handleFullScreen}

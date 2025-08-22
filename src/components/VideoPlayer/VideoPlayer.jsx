@@ -76,6 +76,8 @@ function VideoPlayer({
   const [showSceneIndicator, setShowSceneIndicator] = useState(false); // 27
   const [sceneDisplayTimeout, setSceneDisplayTimeout] = useState(null); // 28
   const [showFeedsDropdown, setShowFeedsDropdown] = useState(true); // 29 - Show by default
+  const [isHovered, setIsHovered] = useState(false); // 30 - Track hover state
+  const [userHasInteracted, setUserHasInteracted] = useState(false); // 31 - Track if user has manually played
 
   const imageDuration = 4;
 
@@ -678,12 +680,14 @@ function VideoPlayer({
   };
 
   const handlePlayPause = () => {
+    setUserHasInteracted(true); // Mark that user has interacted
     if (isPlaying) {
       pause();
     } else {
       play();
     }
   };
+
 
   const play = async () => {
     if (currentMedia) {
@@ -730,10 +734,13 @@ function VideoPlayer({
 
   const playImage = () => {
     clearTimeout(imageTimerRef.current);
-    const timer = setTimeout(() => {
-      handleNext();
-    }, (imageDuration - imageElapsed) * 1000);
-    imageTimerRef.current = timer;
+    // Only auto-advance if user has interacted with the player
+    if (userHasInteracted) {
+      const timer = setTimeout(() => {
+        handleNext();
+      }, (imageDuration - imageElapsed) * 1000);
+      imageTimerRef.current = timer;
+    }
   };
 
   const pauseImage = () => {
@@ -858,7 +865,10 @@ function VideoPlayer({
 
     const handleEnded = () => {
       setIsPlaying(false);
-      handleNext();
+      // Only auto-advance if user has interacted with the player
+      if (userHasInteracted) {
+        handleNext();
+      }
     };
 
     if (currentMedia) {
@@ -922,9 +932,10 @@ function VideoPlayer({
     setImageElapsed(0);
     setIsPlaying(false);
 
-    if (currentMedia && autoplay) {
-      play();
-    }
+    // Don't autoplay - wait for user interaction
+    // if (currentMedia && autoplay) {
+    //   play();
+    // }
   }, [currentMedia, currentMediaIndex, autoplay, listofMedia, mediaList]);
 
   useEffect(() => {
@@ -1025,11 +1036,52 @@ function VideoPlayer({
     }
   }, [selectedOption, setSelectedOption]);
 
+  // Handle keyboard events - defined after all other functions
+  const handleKeyDown = useCallback((event) => {
+    // Only handle keyboard events when the video player is hovered
+    if (!isHovered) return;
+    
+    switch (event.key) {
+      case ' ': // Spacebar
+      case 'Spacebar':
+        event.preventDefault();
+        handlePlayPause();
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        // Pause if playing, then move to previous scene
+        if (isPlaying) {
+          pause();
+        }
+        handlePrev();
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        // Pause if playing, then move to next scene
+        if (isPlaying) {
+          pause();
+        }
+        handleNext();
+        break;
+    }
+  }, [isHovered, isPlaying, pause, handlePrev, handleNext, handlePlayPause]);
+
+  // Add keyboard event listeners
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   return (
     <div
       className={`VideoPlayer ${isFullScreen ? "fullscreen" : ""}`}
       ref={containerRef}
       data-testid="video-player-root"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      tabIndex={0} // Make div focusable for keyboard events
     >
       {/* Scene Indicator */}
       {playerHashFromCache && showSceneIndicator && (
