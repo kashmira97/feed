@@ -28,4 +28,3 @@ env/
 .env.local
 
 venv/
-dist/localsite/

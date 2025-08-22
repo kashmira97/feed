@@ -201,17 +201,6 @@ Vite is preferable to Create React App (CRA) because Vite does not rebuild the w
 ### Build Commands
 
 - **`yarn build`** - Standard build (feed app only)
-- **`yarn build:full`** - Build with LocalSite integration (pulls latest from GitHub)
-
-### LocalSite Integration
-
-The `yarn build:full` command pulls the entire [LocalSite repository](https://github.com/ModelEarth/localsite) into `dist/localsite/` for navigation integration. The LocalSite files are:
-- ✅ **Not stored** in the feed repository 
-- ✅ **Git-ignored** (`dist/localsite/` in `.gitignore`)
-- ✅ **Always fresh** from the latest GitHub commit
-- ✅ **Available at** `http://localhost:8887/dist/localsite/` after build
-
-Use `yarn build:full` for production deployments that need LocalSite navigation components.
 
 ## Contributions
 
