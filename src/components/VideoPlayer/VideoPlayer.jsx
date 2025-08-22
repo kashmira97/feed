@@ -17,6 +17,7 @@ function VideoPlayer({
   setSelectedOption,
   swiperData,
   setSwiperData,
+  playerHashFromCache = true,
 }) {
   
   // Utility function to detect if we're in dist context and adjust paths
@@ -72,10 +73,99 @@ function VideoPlayer({
   const imageRef = useRef(null); // 24
   const [isTallImage, setIsTallImage] = useState(false); // 25
   const [videoData, setVideoData] = useState(null); // 26
+  const [showSceneIndicator, setShowSceneIndicator] = useState(false); // 27
+  const [sceneDisplayTimeout, setSceneDisplayTimeout] = useState(null); // 28
+  const [showFeedsDropdown, setShowFeedsDropdown] = useState(true); // 29 - Show by default
 
   const imageDuration = 4;
 
+  // Player Hash Cache Management
+  const getPlayerHashCache = () => {
+    try {
+      const cache = localStorage.getItem('playerHashCache');
+      return cache ? JSON.parse(cache) : {};
+    } catch (error) {
+      console.warn('Error reading playerHashCache:', error);
+      return {};
+    }
+  };
+
+  const setPlayerHashCache = (listName, listStatus) => {
+    try {
+      const cache = getPlayerHashCache();
+      cache[listName] = {
+        ...listStatus,
+        lastUpdated: new Date().toISOString()
+      };
+      localStorage.setItem('playerHashCache', JSON.stringify(cache));
+      console.log(`%c✅ Cached scene ${listStatus.scene} for list '${listName}'`, 'color: blue; font-weight: bold');
+    } catch (error) {
+      console.warn('Error saving to playerHashCache:', error);
+    }
+  };
+
+  const getListStatusFromCache = (listName) => {
+    const cache = getPlayerHashCache();
+    return cache[listName] || null;
+  };
+
+  const showSceneIndicatorTemporarily = (scene) => {
+    if (!playerHashFromCache) return;
+    
+    // Clear existing timeout
+    if (sceneDisplayTimeout) {
+      clearTimeout(sceneDisplayTimeout);
+    }
+    
+    setShowSceneIndicator(true);
+    
+    // Hide after 3 seconds
+    const timeout = setTimeout(() => {
+      setShowSceneIndicator(false);
+    }, 3000);
+    
+    setSceneDisplayTimeout(timeout);
+  };
+
   const updateURLHash = (feed, scene) => {
+    if (playerHashFromCache) {
+      // Use cache instead of updating URL hash
+      const listStatus = {
+        scene: scene,
+        feed: feed,
+        timestamp: Date.now()
+      };
+      setPlayerHashCache(feed, listStatus);
+      
+      // Show scene indicator
+      showSceneIndicatorTemporarily(scene);
+      
+      // Keep the list parameter in the URL but don't change scene
+      const existingParams = new URLSearchParams(window.location.hash.substring(1));
+      const otherParams = new URLSearchParams();
+      
+      existingParams.forEach((value, key) => {
+        if (key !== "list" && key !== "scene") {
+          otherParams.set(key, value);
+        }
+      });
+      
+      // Only update the list parameter in the URL, keep scene out of URL
+      let hash = `#list=${encodeURIComponent(feed)}`;
+      if (otherParams.toString()) {
+        hash += `&${otherParams.toString()}`;
+      }
+      
+      // Only update hash if the list has actually changed
+      const currentList = existingParams.get("list");
+      if (currentList !== feed) {
+        window.location.hash = hash;
+      }
+      
+      return;
+    }
+
+    // Original hash updating behavior when playerHashFromCache is false
     const existingParams = new URLSearchParams(
       window.location.hash.substring(1)
     );
@@ -97,9 +187,26 @@ function VideoPlayer({
   const parseHash = () => {
     const hash = window.location.hash.substring(1); // Remove the leading '#'
     const params = new URLSearchParams(hash);
+    const feed = params.get("list") || "";
+    
+    if (playerHashFromCache && feed) {
+      // Try to get scene from cache first
+      const cachedStatus = getListStatusFromCache(feed);
+      if (cachedStatus && typeof cachedStatus.scene === 'number') {
+        console.log(`%c✅ Restored scene ${cachedStatus.scene} for list '${feed}' from cache`, 'color: green; font-weight: bold');
+        return {
+          feed: feed,
+          scene: cachedStatus.scene,
+          fromCache: true
+        };
+      }
+    }
+    
+    // Fallback to URL-based scene or default to 0
     return {
-      feed: params.get("list") || "",
+      feed: feed,
       scene: parseInt(params.get("scene") - 1, 10) || 0, // scene is 1-based in the URL, so we subtract 1 to make it 0-based
+      fromCache: false
     };
   };
 
@@ -901,12 +1008,36 @@ function VideoPlayer({
     }
   }, [mediaList]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (sceneDisplayTimeout) {
+        clearTimeout(sceneDisplayTimeout);
+      }
+    };
+  }, [sceneDisplayTimeout]);
+
+  // Handle reopening dropdown from 3-dot menu
+  useEffect(() => {
+    if (selectedOption === "feeds") {
+      setShowFeedsDropdown(true);
+      setSelectedOption(""); // Reset selected option
+    }
+  }, [selectedOption, setSelectedOption]);
+
   return (
     <div
       className={`VideoPlayer ${isFullScreen ? "fullscreen" : ""}`}
       ref={containerRef}
       data-testid="video-player-root"
     >
+      {/* Scene Indicator */}
+      {playerHashFromCache && showSceneIndicator && (
+        <div className="VideoPlayer__scene-indicator">
+          Scene {currentMediaIndex + 1}
+        </div>
+      )}
+      
       <div
         className="VideoPlayer__video-container"
         onMouseLeave={handleMouseLeave}
@@ -1096,18 +1227,27 @@ function VideoPlayer({
         {selectedOption === "url" && (
           <Popup {...{ setVideoData, setSelectedOption }} />
         )}
-        {selectedOption === "feeds" && (
-          <div className="VideoPlayer__dropdown">
-            <div
-              className="VideoPlayer__select"
-              onClick={() => setIsDropdownActive(!isDropdownActive)}
-            >
-              <span>
-                {mediaList && mediaList[index]
-                  ? mediaList[index].title
-                  : "Select Media"}
-              </span>
-              <div className="VideoPlayer__caret"></div>
+        {showFeedsDropdown && (
+          <div className="VideoPlayer__dropdown VideoPlayer__dropdown--upper-left">
+            <div className="VideoPlayer__dropdown-header">
+              <button 
+                className="VideoPlayer__dropdown-close"
+                onClick={() => setShowFeedsDropdown(false)}
+                title="Close feeds dropdown"
+              >
+                ×
+              </button>
+              <div
+                className="VideoPlayer__select"
+                onClick={() => setIsDropdownActive(!isDropdownActive)}
+              >
+                <span>
+                  {mediaList && mediaList[index]
+                    ? mediaList[index].title
+                    : "Select Media"}
+                </span>
+                <div className="VideoPlayer__caret"></div>
+              </div>
             </div>
             <ul
               className={`VideoPlayer__menu ${
@@ -1233,6 +1373,7 @@ VideoPlayer.propTypes = {
   setSelectedOption: PropTypes.func.isRequired,
   swiperData: PropTypes.object,
   setSwiperData: PropTypes.func.isRequired,
+  playerHashFromCache: PropTypes.bool,
 };
 
 export default VideoPlayer;

@@ -390,6 +390,7 @@ function App() {
               setSelectedOption={setSelectedOption}
               swiperData={swiperData}
               setSwiperData={setSwiperData}
+              playerHashFromCache={true}
             />
             {sidePanelView && (
               <div className={`membersense-side-panel ${sidePanelExpanded ? 'expanded' : ''}`}>
