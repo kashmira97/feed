@@ -223,7 +223,7 @@
     min-width: 1.8em;
     margin: 0.5em;
     z-index: 10;
-    opacity: 0;
+    opacity: 1; // Always visible when rendered
     transition: opacity 0.5s ease-in-out;
 
     &--upper-left {
@@ -413,9 +413,6 @@
       }
     }
 
-    .FeedPlayer__dropdown {
-      opacity: 1;
-    }
   }
 
   &__controls {
@@ -841,6 +838,35 @@
           }
         }
       }
+    }
+  }
+
+  &__close-view-page {
+    position: absolute;
+    top: 30px;
+    right: 84px; // Positioned to left of popup-btn (30px + 44px + 10px spacing)
+    z-index: 101;
+    background-color: white;
+    border: none;
+    border-radius: 0.5rem;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    box-shadow: 0px 0px 29px 0px #bebebe;
+    font-size: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: #f5f5f5;
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
     }
   }
 }

@@ -1228,6 +1228,16 @@ function FeedPlayer({
       onMouseLeave={() => setIsHovered(false)}
       tabIndex={0} // Make div focusable for keyboard events
     >
+      {/* Close View Page Button - positioned to left of popup-btn */}
+      {isViewPageMode && (
+        <button
+          className="FeedPlayer__close-view-page"
+          onClick={exitViewPageMode}
+          title="Close page view"
+        >
+          ×
+        </button>
+      )}
       
       <div
         className="FeedPlayer__video-container"
@@ -1508,13 +1518,6 @@ function FeedPlayer({
         {showFeedsDropdown && !isViewPageMode && (
           <div className="FeedPlayer__dropdown FeedPlayer__dropdown--upper-left">
             <div className="FeedPlayer__dropdown-header">
-              <button 
-                className="FeedPlayer__dropdown-close"
-                onClick={() => setShowFeedsDropdown(false)}
-                title="Close feeds dropdown"
-              >
-                ×
-              </button>
               <div
                 className="FeedPlayer__select"
                 onClick={() => setIsDropdownActive(!isDropdownActive)}
@@ -1678,17 +1681,6 @@ function FeedPlayer({
                 step={0.1}
               />
             </>
-          )}
-          
-          {/* Close View Page Button - positioned next to display modes */}
-          {isViewPageMode && (
-            <button
-              className="control-button close-view-page"
-              onClick={exitViewPageMode}
-              title="Close page view"
-            >
-              <i className="ri-close-line"></i>
-            </button>
           )}
           
           {/* Display Modes Button */}
