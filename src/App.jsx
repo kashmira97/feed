@@ -20,7 +20,7 @@ import MemberSense from "./components/MemberSenseComponents/MemberSenseLogin/Mem
 import MemberShowcase from "./components/MemberSenseComponents/MemberShowcase/MemberShowcase";
 import DiscordChannelViewer from "./components/MemberSenseComponents/DiscordChannelViewer/DiscordChannelViewer";
 import Player from "./components/Player/Player";
-import OriginalVideoPlayer from "./components/VideoPlayer/VideoPlayer";
+import OriginalFeedPlayer from "./components/FeedPlayer/FeedPlayer";
 
 // Context
 import ContextProvider from "./Context/ContextGoogle";
@@ -44,9 +44,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Discord token will be retrieved from backend instead of being embedded
 let DISCORD_BOT_TOKEN = null;
 
-// Web Component Registration - using new Player component
+// Web Component Registration - using unified Player component
 const PlayerComponent = reactToWebComponent(Player, React, ReactDOM);
-customElements.define("video-player-widget", PlayerComponent);
+customElements.define("feed-player-widget", PlayerComponent);
 
 function App() {
   // Navigation state
@@ -516,9 +516,9 @@ function App() {
       case "FeedPlayer":
         return (
           <div className="feedplayer-wrapper">
-            {/* Use original VideoPlayer for video mode, unified Player for others */}
+            {/* Use original FeedPlayer for video mode, unified Player for others */}
             {playerType === "video" ? (
-              <OriginalVideoPlayer
+              <OriginalFeedPlayer
                 autoplay={false}
                 isFullScreen={isFullScreen}
                 setIsFullScreen={setIsFullScreen}

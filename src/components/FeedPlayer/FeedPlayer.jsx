@@ -1,14 +1,14 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Context } from "../../Context/ContextGoogle";
 import { formatTime } from "../../utils/formatTime";
-import "./VideoPlayer.scss";
+import "./FeedPlayer.scss";
 import axios from "axios";
 import PropTypes from "prop-types";
 import { FaChevronUp, FaChevronDown, FaPlay, FaPause } from "react-icons/fa";
 import Popup from "../Popup/Popup";
 import Papa from "papaparse";
 
-function VideoPlayer({
+function FeedPlayer({
   autoplay = false,
   isFullScreen,
   setIsFullScreen,
@@ -1136,32 +1136,32 @@ function VideoPlayer({
 
   return (
     <div
-      className={`VideoPlayer ${isFullScreen ? "fullscreen" : ""}`}
+      className={`FeedPlayer ${isFullScreen ? "fullscreen" : ""}`}
       ref={containerRef}
-      data-testid="video-player-root"
+      data-testid="feed-player-root"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       tabIndex={0} // Make div focusable for keyboard events
     >
       {/* Scene Indicator */}
       {playerHashFromCache && showSceneIndicator && (
-        <div className="VideoPlayer__scene-indicator">
+        <div className="FeedPlayer__scene-indicator">
           Scene {currentMediaIndex + 1}
         </div>
       )}
       
       <div
-        className="VideoPlayer__video-container"
+        className="FeedPlayer__video-container"
         onMouseLeave={handleMouseLeave}
       >
         {isLoading ? (
-          <div className="VideoPlayer__loading">
+          <div className="FeedPlayer__loading">
             <div className="spinner"></div>
             <p>Loading media...</p>
           </div>
         ) : currentMedia && currentMedia.isError ? (
           <div
-            className="VideoPlayer__error"
+            className="FeedPlayer__error"
             style={{ background: "none", padding: 0 }}
           >
             <img
@@ -1241,7 +1241,7 @@ function VideoPlayer({
             </div>
           ) : (
             <div
-              className="VideoPlayer__unsupported-media"
+              className="FeedPlayer__unsupported-media"
               style={{ background: "none", padding: 0 }}
             >
               <img
@@ -1256,7 +1256,7 @@ function VideoPlayer({
             </div>
           )
         ) : (
-          <div className="VideoPlayer__no-media">
+          <div className="FeedPlayer__no-media">
             <img
               src={getAssetPath('src/assets/images/intro-a.jpg')}
               alt="Feed Player Placeholder"
@@ -1267,12 +1267,12 @@ function VideoPlayer({
         )}
         {selectedMediaList.length > 1 && (
           <div
-            className="VideoPlayer__progress-bg"
+            className="FeedPlayer__progress-bg"
             onClick={(event) => handleProgressBarClick(event)}
             style={{ bottom: isFullScreen ? "12px" : 0 }}
           >
             <div
-              className="VideoPlayer__progress"
+              className="FeedPlayer__progress"
               style={{
                 width:
                   selectedMediaList.length > 0
@@ -1291,7 +1291,7 @@ function VideoPlayer({
                 index >= 0 && (
                   <div
                     key={index}
-                    className="VideoPlayer__progress-point"
+                    className="FeedPlayer__progress-point"
                     style={{
                       left: `${
                         ((index + 1) /
@@ -1313,11 +1313,11 @@ function VideoPlayer({
         )}
         {!isLoading && currentMedia && (
           <div
-            className={`VideoPlayer__overlay ${
+            className={`FeedPlayer__overlay ${
               isExpanded ? "expanded-overlay" : ""
             }`}
           >
-            <div className="VideoPlayer__info">
+            <div className="FeedPlayer__info">
               <h2>
                 {currentMedia.title || "Untitled"}{" "}
                 <span onClick={toggleText} className="toggle-text">
@@ -1338,17 +1338,17 @@ function VideoPlayer({
           <Popup {...{ setVideoData, setSelectedOption }} />
         )}
         {showFeedsDropdown && (
-          <div className="VideoPlayer__dropdown VideoPlayer__dropdown--upper-left">
-            <div className="VideoPlayer__dropdown-header">
+          <div className="FeedPlayer__dropdown FeedPlayer__dropdown--upper-left">
+            <div className="FeedPlayer__dropdown-header">
               <button 
-                className="VideoPlayer__dropdown-close"
+                className="FeedPlayer__dropdown-close"
                 onClick={() => setShowFeedsDropdown(false)}
                 title="Close feeds dropdown"
               >
                 ×
               </button>
               <div
-                className="VideoPlayer__select"
+                className="FeedPlayer__select"
                 onClick={() => setIsDropdownActive(!isDropdownActive)}
               >
                 <span>
@@ -1356,11 +1356,11 @@ function VideoPlayer({
                     ? mediaList[index].title
                     : "Select Media"}
                 </span>
-                <div className="VideoPlayer__caret"></div>
+                <div className="FeedPlayer__caret"></div>
               </div>
             </div>
             <ul
-              className={`VideoPlayer__menu ${
+              className={`FeedPlayer__menu ${
                 isDropdownActive ? "active" : ""
               }`}
             >
@@ -1418,7 +1418,7 @@ function VideoPlayer({
           </div>
         )}
       </div>
-      <div className="VideoPlayer__controls">
+      <div className="FeedPlayer__controls">
         <div className="control-group control-group-btn">
           <button className="control-button prev" onClick={handlePrev}>
             <i className="ri-skip-back-fill icon"></i>
@@ -1489,7 +1489,7 @@ function VideoPlayer({
   );
 }
 
-VideoPlayer.propTypes = {
+FeedPlayer.propTypes = {
   autoplay: PropTypes.bool,
   isFullScreen: PropTypes.bool.isRequired,
   setIsFullScreen: PropTypes.func.isRequired,
@@ -1501,4 +1501,4 @@ VideoPlayer.propTypes = {
   playerHashFromCache: PropTypes.bool,
 };
 
-export default VideoPlayer;
+export default FeedPlayer;

@@ -4,7 +4,6 @@ import PropTypes from "prop-types";
 import "./Player.scss";
 
 // Sub-player components
-import VideoPlayer from "./VideoPlayer/VideoPlayer";
 import PagePlayer from "./PagePlayer/PagePlayer";
 import MemberPlayer from "./MemberPlayer/MemberPlayer";
 
@@ -146,23 +145,6 @@ const Player = ({
 
     // For full view, use specialized sub-players
     switch (playerType) {
-      case "video":
-        return (
-          <VideoPlayer
-            ref={subPlayerRef}
-            autoplay={autoplay}
-            selectedOption={selectedOption}
-            setSelectedOption={setSelectedOption}
-            swiperData={swiperData}
-            setSwiperData={setSwiperData}
-            playerHashFromCache={playerHashFromCache}
-            onTitleChange={setCurrentTitle}
-            onDescriptionChange={setCurrentDescription}
-            controlAction={controlAction}
-            onPlayStateChange={setIsPlaying}
-            {...commonProps}
-          />
-        );
       case "page":
         return (
           <PagePlayer

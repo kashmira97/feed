@@ -1,6 +1,6 @@
 @import "../../scss/input";
 
-.VideoPlayer {
+.FeedPlayer {
   width: min(90vw, 800px);
   display: flex;
   flex-direction: column;
@@ -37,14 +37,14 @@
     width: 100vw;
     height: 100vh;
 
-    .VideoPlayer__video-container {
+    .FeedPlayer__video-container {
       width: 100%;
       height: calc(100% - 80px); // Adjust based on your controls height
       overflow: hidden;
       background-color: #f0f0f0;
     }
 
-    .VideoPlayer__controls {
+    .FeedPlayer__controls {
       position: absolute;
       bottom: 0;
       left: 0;
@@ -181,7 +181,7 @@
     &:hover {
       height: 0.7rem;
 
-      .VideoPlayer__progress {
+      .FeedPlayer__progress {
         height: 0.7rem;
       }
     }
@@ -366,7 +366,7 @@
   }
 
   &__video-container:hover {
-    .VideoPlayer__overlay {
+    .FeedPlayer__overlay {
       background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
 
       &.expanded-overlay:hover {
@@ -400,7 +400,7 @@
       }
     }
 
-    .VideoPlayer__info {
+    .FeedPlayer__info {
       h2 {
         font-size: 24px;
 
@@ -414,7 +414,7 @@
       }
     }
 
-    .VideoPlayer__dropdown {
+    .FeedPlayer__dropdown {
       opacity: 1;
     }
   }
@@ -518,14 +518,14 @@
   }
 }
 
-.VideoPlayer__menu {
+.FeedPlayer__menu {
   li.loading {
     opacity: 0.5;
     cursor: not-allowed;
   }
 }
 
-.VideoPlayer__loading {
+.FeedPlayer__loading {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -551,7 +551,7 @@
   }
 }
 
-.VideoPlayer__no-media {
+.FeedPlayer__no-media {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -560,7 +560,7 @@
   color: #666;
 }
 
-.VideoPlayer__unsupported-media {
+.FeedPlayer__unsupported-media {
   display: flex;
   align-items: center;
   justify-content: center;
