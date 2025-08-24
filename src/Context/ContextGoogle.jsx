@@ -15,6 +15,7 @@ export default function ContextProvider({ children }) {
 
   useEffect(() => {
     const fetchMedia = async () => {
+      console.log("🔄 ContextGoogle: Starting to fetch media data...");
       try {
         // Pulls from this main Google Sheet to get a list of feeds for our dropdown menu: 
         // https://docs.google.com/spreadsheets/d/1jQTlXWom-pXvyP9zuTcbdluyvpb43hu2h7anxhF5qlQ/edit?usp=sharing
@@ -26,10 +27,12 @@ export default function ContextProvider({ children }) {
         const sampleResponse = await axios.get(
           "https://docs.google.com/spreadsheets/d/e/2PACX-1vSxfv7lxikjrmro3EJYGE_134vm5HdDszZKt4uKswHhsNJ_-afSaG9RoA4oeNV656r4mTuG3wTu38pM/pub?gid=889452679&single=true&output=csv"
         );
-        //console.log("fetched sample data from the spread sheet", sampleResponse.data);
+        console.log("✅ ContextGoogle: Successfully fetched CSV data");
+        
         Papa.parse(sampleResponse.data, {
           header: true, // Assuming your CSV has headers
           complete: (results) => {
+            console.log("🔍 ContextGoogle: Parsing CSV results:", results.data.length, "rows");
             const feedMedia = results.data
               .filter((row) => row.Text === "TRUE")
               .map((row) => ({
@@ -40,20 +43,24 @@ export default function ContextProvider({ children }) {
                 url: row.URL,
                 feedFields: row.FeedFields,
               }));
-            console.log("Fetched media: from sample sheet", feedMedia); // Log the fetched media
+            console.log("✅ ContextGoogle: Processed media list:", feedMedia.length, "items");
+            console.log("📊 ContextGoogle: Media titles:", feedMedia.map(m => m.title));
             setMediaList(feedMedia);
-            // if (feedMedia.length > 0) {
-            //     setCurrentMedia(feedMedia[0]); // Set the first media item as the current media
-            // }
+            
+            // Set first media as current if none selected
+            if (feedMedia.length > 0) {
+              console.log("🎯 ContextGoogle: Setting first media as current:", feedMedia[0].title);
+              setCurrentMedia(feedMedia[0]);
+            }
           },
         });
       } catch (error) {
-        console.error("Error fetching media:", error);
+        console.error("❌ ContextGoogle: Error fetching media:", error);
       }
     };
 
     fetchMedia();
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   return (
     <Context.Provider

@@ -81,6 +81,31 @@ function VideoPlayer({
 
   const imageDuration = 4;
 
+  // Helper function to show video frame at 2 seconds when paused
+  const showVideoPreviewFrame = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.poster = ""; // Remove poster to show video frame
+      
+      // Set up event listener to seek to 2 seconds once video metadata is loaded
+      const seekToPreviewTime = () => {
+        if (videoRef.current && videoRef.current.duration > 2) {
+          videoRef.current.currentTime = 2; // Go to 2 seconds in to avoid fade-in from black
+        }
+        videoRef.current.removeEventListener('loadedmetadata', seekToPreviewTime);
+      };
+      
+      // If metadata is already loaded, seek immediately
+      if (videoRef.current.readyState >= 1) {
+        seekToPreviewTime();
+      } else {
+        // Wait for metadata to load
+        videoRef.current.addEventListener('loadedmetadata', seekToPreviewTime);
+      }
+      
+      videoRef.current.load(); // Ensure video loads
+    }
+  }, []);
+
   // Player Hash Cache Management
   const getPlayerHashCache = () => {
     try {
@@ -418,8 +443,12 @@ function VideoPlayer({
     // Try to load the first available feed from the mediaList
     let defaultFeed = null;
     if (mediaList && mediaList.length > 0) {
-      // Get the first feed that has a URL
-      defaultFeed = mediaList.find((media) => media.url && media.url.trim());
+      // Get the first feed that has a URL and is not broken
+      defaultFeed = mediaList.find((media) => 
+        media.url && 
+        media.url.trim() && 
+        media.url.startsWith('http') // Ensure it's a valid HTTP URL
+      );
     }
 
     // Fallback to NASA feed if no other feed is available
@@ -467,15 +496,9 @@ function VideoPlayer({
   };
 
   const handleGlobalError = (error, mediaTitle = "Error") => {
-    console.error("Global error handler triggered:", error);
-    const placeholderMedia = {
-      url: getAssetPath('src/assets/images/intro-landscape.jpg'), // Placeholder image
-      text: error.message || "An unknown error occurred", // Use the specific error message
-      title: `Failed to load ${mediaTitle}`, // Display the media title with the error
-      isError: true,
-    };
-    setSelectedMediaList([placeholderMedia]); // Set placeholder as the selected media
-    setCurrentMedia(placeholderMedia); // Set placeholder as the current media
+    console.warn("Media loading error:", error.message || error, "for:", mediaTitle);
+    // Don't replace the entire media list, just skip the problematic item
+    // This prevents disrupting the entire feed when one image fails
   };
 
   // Wrap the loadFeed function to pass the media title to the global error handler
@@ -612,14 +635,20 @@ function VideoPlayer({
                           }
                         });
                         
+                        // Only include items with valid image URLs
+                        const imageUrl = item.url || item.hdurl;
+                        if (!imageUrl || !imageUrl.startsWith('http')) {
+                          return null; // Skip invalid entries
+                        }
+                        
                         return {
-                          url: item.url || item.hdurl || getAssetPath('src/assets/images/intro-a.jpg'), // Use placeholder if no URL
+                          url: imageUrl,
                           text: Object.entries(displayData).map(([key, value]) => `${key}: ${value}`).join(', ') || "No data available",
                           title: item.Name || item.title || item[fieldNames[0]] || `Item ${index + 1}`,
                           rawData: item, // Include raw data for potential future use
                           displayFields: displayData
                         };
-                      });
+                      }).filter(item => item !== null); // Remove invalid entries
                   } else {
                     // Fallback to standard media format
                     mediaItems = results.data
@@ -697,6 +726,10 @@ function VideoPlayer({
       } else if (isVideoFile(currentMedia.url) && videoRef.current) {
         try {
           videoRef.current.muted = isMute; // Ensure video is muted if isMute is true
+          // Restore poster when playing (will be hidden during playback)
+          if (!videoRef.current.poster) {
+            videoRef.current.poster = getAssetPath('src/assets/images/intro-a.jpg');
+          }
           await videoRef.current.play();
           setIsPlaying(true);
         } catch (error) {
@@ -749,17 +782,35 @@ function VideoPlayer({
 
   const handleNext = useCallback(() => {
     setCurrentMediaIndex((prevIndex) => {
-      const nextIndex = (prevIndex + 1) % mediaList.length;
+      const nextIndex = (prevIndex + 1) % selectedMediaList.length;
+      
+      // If we're in pause mode and moving to a new scene, show the first frame for videos
+      if (!isPlaying && selectedMediaList[nextIndex]) {
+        const newMedia = selectedMediaList[nextIndex];
+        if (isVideoFile(newMedia.url)) {
+          setTimeout(showVideoPreviewFrame, 100);
+        }
+      }
+      
       return nextIndex;
     });
-  }, [mediaList.length]);
+  }, [selectedMediaList.length, isPlaying, selectedMediaList, showVideoPreviewFrame]);
 
   const handlePrev = useCallback(() => {
     setCurrentMediaIndex((prevIndex) => {
-      const nextIndex = (prevIndex - 1 + mediaList.length) % mediaList.length;
+      const nextIndex = (prevIndex - 1 + selectedMediaList.length) % selectedMediaList.length;
+      
+      // If we're in pause mode and moving to a new scene, show the first frame for videos
+      if (!isPlaying && selectedMediaList[nextIndex]) {
+        const newMedia = selectedMediaList[nextIndex];
+        if (isVideoFile(newMedia.url)) {
+          setTimeout(showVideoPreviewFrame, 100);
+        }
+      }
+      
       return nextIndex;
     });
-  }, [mediaList.length]);
+  }, [selectedMediaList.length, isPlaying, selectedMediaList, showVideoPreviewFrame]);
 
   const handleProgressBarClick = (event) => {
     const progressBar = event.currentTarget; // The clicked progress bar element
@@ -777,7 +828,16 @@ function VideoPlayer({
     setCurrentMediaIndex(() => {
       return index;
     });
-  }, []);
+    
+    // If we're in pause mode and moving to a new scene, show the frame at 2 seconds for videos
+    if (!isPlaying && selectedMediaList[index]) {
+      const newMedia = selectedMediaList[index];
+      if (isVideoFile(newMedia.url)) {
+        // Use setTimeout to ensure the video element is updated first
+        setTimeout(showVideoPreviewFrame, 100);
+      }
+    }
+  }, [isPlaying, selectedMediaList, showVideoPreviewFrame]);
 
   const handleVideoRange = () => {
     if (currentMedia && isVideoFile(currentMedia.url) && videoRef.current) {
@@ -1118,12 +1178,10 @@ function VideoPlayer({
               className="video-image image-file"
               src={currentMedia.url}
               alt={currentMedia.title || "Media"}
-              onError={() => {
-                console.error("Error loading image:", currentMedia.url);
-                handleGlobalError(
-                  new Error("Image failed to load"),
-                  currentMedia.title
-                );
+              onError={(e) => {
+                console.warn("Image failed to load:", currentMedia.url);
+                // Set a fallback image instead of crashing
+                e.target.src = getAssetPath('src/assets/images/intro-landscape.jpg');
               }}
               onLoad={() => {
                 if (imageRef.current && containerRef.current) {
@@ -1316,6 +1374,19 @@ function VideoPlayer({
                         : "loading"
                     }`}
                     onClick={() => {
+                      const loadMediaAndShowFirstFrame = (mediaList, firstMedia) => {
+                        // Show first frame for videos in pause mode
+                        if (!isPlaying && firstMedia && isVideoFile(firstMedia.url)) {
+                          setTimeout(() => {
+                            if (videoRef.current) {
+                              videoRef.current.poster = ""; // Remove poster to show video frame
+                              videoRef.current.currentTime = 2; // Go to 2 seconds in to avoid fade-in from black
+                              videoRef.current.load();
+                            }
+                          }, 100);
+                        }
+                      };
+                      
                       if (
                         loadedFeeds.includes(media.feed.trim().toLowerCase())
                       ) {
@@ -1325,6 +1396,7 @@ function VideoPlayer({
                         setSelectedMediaList(listofMedia[media.title]);
                         setCurrentMedia(listofMedia[media.title][0]);
                         updateURLHash(media.feed, 0); // Update hash
+                        loadMediaAndShowFirstFrame(listofMedia[media.title], listofMedia[media.title][0]);
                       } else {
                         loadFeed(media, listofMedia).then(() => {
                           setIndex(idx);
@@ -1333,6 +1405,7 @@ function VideoPlayer({
                           setSelectedMediaList(listofMedia[media.title]);
                           setCurrentMedia(listofMedia[media.title][0]);
                           updateURLHash(media.feed, 0); // Update hash after loading
+                          loadMediaAndShowFirstFrame(listofMedia[media.title], listofMedia[media.title][0]);
                           console.log(`%c✅ Successfully loaded feed '${media.feed}' from dropdown with ${listofMedia[media.title]?.length || 0} items`, 'color: green; font-weight: bold');
                         });
                       }

@@ -19,7 +19,8 @@ import {
 import MemberSense from "./components/MemberSenseComponents/MemberSenseLogin/MemberSense";
 import MemberShowcase from "./components/MemberSenseComponents/MemberShowcase/MemberShowcase";
 import DiscordChannelViewer from "./components/MemberSenseComponents/DiscordChannelViewer/DiscordChannelViewer";
-import VideoPlayer from "./components/VideoPlayer/VideoPlayer";
+import Player from "./components/Player/Player";
+import OriginalVideoPlayer from "./components/VideoPlayer/VideoPlayer";
 
 // Context
 import ContextProvider from "./Context/ContextGoogle";
@@ -43,9 +44,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Discord token will be retrieved from backend instead of being embedded
 let DISCORD_BOT_TOKEN = null;
 
-// Web Component Registration
-const VideoPlayerComponent = reactToWebComponent(VideoPlayer, React, ReactDOM);
-customElements.define("video-player-widget", VideoPlayerComponent);
+// Web Component Registration - using new Player component
+const PlayerComponent = reactToWebComponent(Player, React, ReactDOM);
+customElements.define("video-player-widget", PlayerComponent);
 
 function App() {
   // Navigation state
@@ -67,8 +68,10 @@ function App() {
   const [isPopup, setIsPopup] = useState(false);
   const menuRef = useRef(null);
   const [isMenu, setIsMenu] = useState(false);
-  const [showPageView, setShowPageView] = useState(true); // Show page initially
+  const [showPageView, setShowPageView] = useState(false); // Show video player initially
   const [pageContent, setPageContent] = useState('');
+  const [playerType, setPlayerType] = useState("video"); // "video", "page", "member"
+  const [viewMode, setViewMode] = useState("full"); // "full", "columns", "table", "list", "gallery"
 
   // Auth state
   const [token, setToken] = useState("");
@@ -203,21 +206,31 @@ function App() {
       const hash = window.location.hash.substring(1); // Remove the leading '#'
       const params = new URLSearchParams(hash);
       
-      // Check if a list parameter is specified
-      if (params.get('list')) {
-        setShowPageView(false); // Show FeedPlayer when list is specified
-      } else {
-        setShowPageView(true); // Show page when no list is specified
-      }
-      
+      // Determine player type based on URL parameters
       if (params.get('members') === 'discord') {
+        setPlayerType("member");
+        setShowPageView(false);
         setShowMemberSenseOverlay(true);
-        // Set currentView to FeedPlayer if it's not already to ensure video is visible
         if (currentView !== "FeedPlayer") {
           setCurrentView("FeedPlayer");
         }
-      } else {
+      } else if (params.get('page') === 'true') {
+        setPlayerType("page");
+        setShowPageView(true); // Show page when explicitly requested
         setShowMemberSenseOverlay(false);
+      } else {
+        // Default to video player (whether list is specified or not)
+        setPlayerType("video");
+        setShowPageView(false); // Show VideoPlayer by default
+        setShowMemberSenseOverlay(false);
+      }
+
+      // Handle view mode parameter
+      const viewModeParam = params.get('view');
+      if (viewModeParam && ["full", "columns", "table", "list", "gallery"].includes(viewModeParam)) {
+        setViewMode(viewModeParam);
+      } else {
+        setViewMode("full");
       }
     };
 
@@ -236,6 +249,22 @@ function App() {
   useEffect(() => {
     loadProjectsPage();
   }, []);
+
+  // Handle view mode changes from selectedOption
+  useEffect(() => {
+    if (selectedOption.startsWith("viewMode:")) {
+      const newViewMode = selectedOption.replace("viewMode:", "");
+      if (["full", "columns", "table", "list", "gallery"].includes(newViewMode)) {
+        setViewMode(newViewMode);
+        // Update URL hash to reflect view mode
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        params.set('view', newViewMode);
+        window.location.hash = '#' + params.toString();
+      }
+      setSelectedOption(""); // Clear the selected option
+    }
+  }, [selectedOption]);
 
   // Effects
   useEffect(() => {
@@ -412,9 +441,8 @@ function App() {
 
   const handleViewChange = (view) => {
     if (view === "Showcase" || view === "DiscordViewer") {
-      // Show side panel for MemberSense features
-      setSidePanelView(view);
-      setCurrentView("FeedPlayer"); // Keep video player as main view
+      // Use unified Player for MemberSense features
+      window.location.hash = '#members=discord';
       
       // Load data if not already loaded
       if (sessionId && members.length === 0 && !useMockData) {
@@ -435,6 +463,17 @@ function App() {
             setIsLoading(false);
           });
       }
+    } else if (view === "MemberSense") {
+      // Switch to MemberSense login view
+      setError("");
+      setIsTransitioning(true);
+      setIsLoading(true);
+      setTimeout(() => {
+        setCurrentView(view);
+        setSidePanelView(null);
+        setIsTransitioning(false);
+        setTimeout(() => setIsLoading(false), 500);
+      }, 300);
     } else {
       // Normal view change
       setError("");
@@ -442,7 +481,7 @@ function App() {
       setIsLoading(true);
       setTimeout(() => {
         setCurrentView(view);
-        setSidePanelView(null); // Close side panel
+        setSidePanelView(null);
         setIsTransitioning(false);
         setTimeout(() => setIsLoading(false), 500);
       }, 300);
@@ -477,87 +516,40 @@ function App() {
       case "FeedPlayer":
         return (
           <div className="feedplayer-wrapper">
-            {/* Page Container - shown when no list is specified */}
-            {showPageView && (
-              <div 
-                className="page-container" 
-                dangerouslySetInnerHTML={{ __html: pageContent }}
+            {/* Use original VideoPlayer for video mode, unified Player for others */}
+            {playerType === "video" ? (
+              <OriginalVideoPlayer
+                autoplay={false}
+                isFullScreen={isFullScreen}
+                setIsFullScreen={setIsFullScreen}
+                handleFullScreen={handleFullScreen}
+                selectedOption={selectedOption}
+                setSelectedOption={setSelectedOption}
+                swiperData={swiperData}
+                setSwiperData={setSwiperData}
+                playerHashFromCache={true}
+                {...commonProps}
               />
-            )}
-            
-            {/* FeedPlayer Container - shown when list is specified */}
-            {!showPageView && (
-              <div className="feedplayer-container">
-                <VideoPlayer
-                  autoplay={false}
-                  isFullScreen={isFullScreen}
-                  setIsFullScreen={setIsFullScreen}
-                  handleFullScreen={handleFullScreen}
-                  selectedOption={selectedOption}
-                  setSelectedOption={setSelectedOption}
-                  swiperData={swiperData}
-                  setSwiperData={setSwiperData}
-                  playerHashFromCache={true}
-                />
-              </div>
-            )}
-            
-            {sidePanelView && !showPageView && (
-              <div className={`membersense-side-panel ${sidePanelExpanded ? 'expanded' : ''}`}>
-                <div className="side-panel-controls">
-                  <button 
-                    className="panel-control-btn pause-btn" 
-                    onClick={() => {
-                      const video = document.querySelector('video');
-                      if (video) {
-                        if (video.paused) {
-                          video.play();
-                        } else {
-                          video.pause();
-                        }
-                      }
-                    }}
-                    title="Pause/Play Video"
-                  >
-                    ⏸️
-                  </button>
-                  <button 
-                    className="panel-control-btn expand-btn" 
-                    onClick={() => setSidePanelExpanded(!sidePanelExpanded)}
-                    title={sidePanelExpanded ? "Collapse Panel" : "Expand Panel"}
-                  >
-                    {sidePanelExpanded ? '📐' : '📏'}
-                  </button>
-                  <button 
-                    className="panel-control-btn close-btn" 
-                    onClick={() => {
-                      setSidePanelView(null);
-                      setSidePanelExpanded(false);
-                    }}
-                    title="Close Panel"
-                  >
-                    ×
-                  </button>
-                </div>
-                {sidePanelView === "Showcase" && (
-                  <MemberShowcase 
-                    token={token} 
-                    members={members} 
-                    isLoading={isLoading} 
-                    {...commonProps} 
-                  />
-                )}
-                {sidePanelView === "DiscordViewer" && (
-                  <DiscordChannelViewer
-                    channels={channels}
-                    messages={messages}
-                    selectedChannel={selectedChannel}
-                    onChannelSelect={setSelectedChannel}
-                    isLoading={isLoading}
-                    {...commonProps}
-                  />
-                )}
-              </div>
+            ) : (
+              <Player
+                playerType={playerType}
+                viewMode={viewMode}
+                isFullScreen={isFullScreen}
+                setIsFullScreen={setIsFullScreen}
+                handleFullScreen={handleFullScreen}
+                // Page player props
+                pageContent={pageContent}
+                // Member player props
+                channels={channels}
+                messages={messages}
+                members={members}
+                selectedChannel={selectedChannel}
+                onChannelSelect={setSelectedChannel}
+                token={token}
+                // Common props
+                isLoading={isLoading}
+                {...commonProps}
+              />
             )}
           </div>
         );
@@ -655,7 +647,13 @@ function App() {
                       <Link size={24} />
                       <span>Paste Your Video URL</span>
                     </button>
-                    <button onClick={() => setShowPageView(!showPageView)}>
+                    <button onClick={() => {
+                      if (showPageView) {
+                        window.location.hash = '#list=nasa';
+                      } else {
+                        window.location.hash = '#page=true';
+                      }
+                    }}>
                       <Video size={24} />
                       <span>{showPageView ? "View Player" : "View Page"}</span>
                     </button>
@@ -702,7 +700,11 @@ function App() {
                           <span>Paste Your Video URL</span>
                         </li>
                         <li className="menu-item" onClick={() => {
-                          setShowPageView(!showPageView);
+                          if (showPageView) {
+                            window.location.hash = '#list=nasa';
+                          } else {
+                            window.location.hash = '#page=true';
+                          }
                           setIsMenu(false);
                         }}>
                           <Video size={24} />
