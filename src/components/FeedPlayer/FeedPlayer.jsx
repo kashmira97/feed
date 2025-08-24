@@ -6,6 +6,7 @@ import axios from "axios";
 import PropTypes from "prop-types";
 import { FaChevronUp, FaChevronDown, FaPlay, FaPause } from "react-icons/fa";
 import Popup from "../Popup/Popup";
+import PageDisplay from "../PageDisplay/PageDisplay";
 import Papa from "papaparse";
 
 function FeedPlayer({
@@ -18,6 +19,7 @@ function FeedPlayer({
   swiperData,
   setSwiperData,
   playerHashFromCache = true,
+  pageContent = "", // Add page content prop
 }) {
   
   // Utility function to detect if we're in dist context and adjust paths
@@ -78,8 +80,65 @@ function FeedPlayer({
   const [showFeedsDropdown, setShowFeedsDropdown] = useState(true); // 29 - Show by default
   const [isHovered, setIsHovered] = useState(false); // 30 - Track hover state
   const [userHasInteracted, setUserHasInteracted] = useState(false); // 31 - Track if user has manually played
+  const [showDisplayModesPopup, setShowDisplayModesPopup] = useState(false); // 32 - Display modes popup
+  const [currentDisplayMode, setCurrentDisplayMode] = useState("media"); // 33 - Current display mode
+  const [isViewPageMode, setIsViewPageMode] = useState(false); // 34 - Track if in View Page mode
 
   const imageDuration = 4;
+  const pageDuration = 10; // Pages last 10 seconds
+  const pageTimerRef = useRef(null); // Add page timer ref
+
+  // Display mode definitions with icons
+  const displayModes = [
+    { key: "media", label: "Media View", icon: "ri-play-circle-line" },
+    { key: "full", label: "Full View", icon: "ri-fullscreen-line" },
+    { key: "columns", label: "Columns", icon: "ri-layout-column-line" },
+    { key: "table", label: "Table", icon: "ri-table-line" },
+    { key: "list", label: "List", icon: "ri-list-check" },
+    { key: "gallery", label: "Gallery", icon: "ri-gallery-line" }
+  ];
+
+  // Handle view page action
+  useEffect(() => {
+    if (selectedOption === "viewPage") {
+      // Create a page scene and add it to the current media list
+      const pageScene = {
+        type: 'page',
+        title: 'Team Projects Page',
+        description: 'Displaying team projects page content',
+        url: null, // Pages don't have URLs
+      };
+      
+      // Add the page scene to the selectedMediaList
+      setSelectedMediaList(prev => [...prev, pageScene]);
+      
+      // Switch to the page scene
+      const newIndex = selectedMediaList.length;
+      setCurrentMediaIndex(newIndex);
+      setCurrentMedia(pageScene);
+      
+      // Enter View Page mode
+      setIsViewPageMode(true);
+      
+      // Clear the selected option
+      setSelectedOption("");
+    }
+  }, [selectedOption, selectedMediaList, setSelectedOption]);
+
+  // Function to exit View Page mode
+  const exitViewPageMode = () => {
+    setIsViewPageMode(false);
+    // Remove the page scene from the list and return to original list
+    setSelectedMediaList(prev => prev.filter(item => item.type !== 'page'));
+    // Return to first item in original list if available
+    if (selectedMediaList.length > 1) {
+      setCurrentMediaIndex(0);
+      const firstNonPageItem = selectedMediaList.find(item => item.type !== 'page');
+      if (firstNonPageItem) {
+        setCurrentMedia(firstNonPageItem);
+      }
+    }
+  };
 
   // Helper function to show video frame at 2 seconds when paused
   const showVideoPreviewFrame = useCallback(() => {
@@ -708,6 +767,10 @@ function FeedPlayer({
     );
   };
 
+  const isPageFile = (media) => {
+    return media && media.type === 'page';
+  };
+
   const handlePlayPause = () => {
     setUserHasInteracted(true); // Mark that user has interacted
     if (isPlaying) {
@@ -722,6 +785,9 @@ function FeedPlayer({
     if (currentMedia) {
       if (isImageFile(currentMedia.url)) {
         playImage();
+        setIsPlaying(true);
+      } else if (isPageFile(currentMedia)) {
+        playPage();
         setIsPlaying(true);
       } else if (isVideoFile(currentMedia.url) && videoRef.current) {
         try {
@@ -745,6 +811,8 @@ function FeedPlayer({
     if (currentMedia) {
       if (isImageFile(currentMedia.url)) {
         pauseImage();
+      } else if (isPageFile(currentMedia)) {
+        pausePage();
       } else if (isVideoFile(currentMedia.url) && videoRef.current) {
         videoRef.current.pause();
       }
@@ -756,6 +824,8 @@ function FeedPlayer({
     if (currentMedia && isImageFile(currentMedia.url)) {
       clearTimeout(imageTimerRef.current);
       setImageElapsed(0);
+    } else if (currentMedia && isPageFile(currentMedia)) {
+      clearTimeout(pageTimerRef.current);
     } else if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
@@ -778,6 +848,21 @@ function FeedPlayer({
 
   const pauseImage = () => {
     clearTimeout(imageTimerRef.current);
+  };
+
+  // Page timer functions
+  const playPage = () => {
+    pageTimerRef.current = setTimeout(() => {
+      if (selectedMediaList.length > 1) {
+        handleNext(); // Auto-advance to next scene after 10 seconds
+      } else {
+        setIsPlaying(false); // Stop if it's the last scene
+      }
+    }, pageDuration * 1000);
+  };
+
+  const pausePage = () => {
+    clearTimeout(pageTimerRef.current);
   };
 
   const handleNext = useCallback(() => {
@@ -1143,12 +1228,6 @@ function FeedPlayer({
       onMouseLeave={() => setIsHovered(false)}
       tabIndex={0} // Make div focusable for keyboard events
     >
-      {/* Scene Indicator */}
-      {playerHashFromCache && showSceneIndicator && (
-        <div className="FeedPlayer__scene-indicator">
-          Scene {currentMediaIndex + 1}
-        </div>
-      )}
       
       <div
         className="FeedPlayer__video-container"
@@ -1171,8 +1250,97 @@ function FeedPlayer({
               style={{ display: "block", width: "100%", height: "auto" }} // Ensure the image takes full space
             />
           </div>
-        ) : currentMedia && currentMedia.url ? (
-          isImageFile(currentMedia.url) ? (
+        ) : currentDisplayMode !== "media" ? (
+          <div className={`FeedPlayer__display-mode-content display-mode--${currentDisplayMode}`}>
+            {currentDisplayMode === "full" && (
+              <div className="display-full">
+                <h2>Full View</h2>
+                <p>Full scene view with detailed information</p>
+                {/* This would show expanded scene details */}
+              </div>
+            )}
+            {currentDisplayMode === "columns" && (
+              <div className="display-columns">
+                <h2>Columns View</h2>
+                <div className="columns-grid">
+                  {selectedMediaList.slice(0, 6).map((item, index) => (
+                    <div key={index} className="column-item">
+                      <div className="column-thumbnail">
+                        {isImageFile(item.url) && <img src={item.url} alt={item.title} />}
+                      </div>
+                      <span>{item.title || `Scene ${index + 1}`}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {currentDisplayMode === "table" && (
+              <div className="display-table">
+                <h2>Table View</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Title</th>
+                      <th>Type</th>
+                      <th>Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedMediaList.slice(0, 8).map((item, index) => (
+                      <tr key={index}>
+                        <td>{index + 1}</td>
+                        <td>{item.title || `Scene ${index + 1}`}</td>
+                        <td>{isImageFile(item.url) ? "Image" : isVideoFile(item.url) ? "Video" : "Page"}</td>
+                        <td>{isPageFile(item) ? "10s" : isImageFile(item.url) ? "4s" : "Video"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {currentDisplayMode === "list" && (
+              <div className="display-list">
+                <h2>List View</h2>
+                <ul className="scene-list">
+                  {selectedMediaList.map((item, index) => (
+                    <li key={index} className="scene-list-item">
+                      <span className="scene-number">{index + 1}</span>
+                      <span className="scene-title">{item.title || `Scene ${index + 1}`}</span>
+                      <span className="scene-type">{isImageFile(item.url) ? "IMG" : isVideoFile(item.url) ? "VID" : "PAGE"}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {currentDisplayMode === "gallery" && (
+              <div className="display-gallery">
+                <h2>Gallery View</h2>
+                <div className="gallery-grid">
+                  {selectedMediaList.slice(0, 12).map((item, index) => (
+                    <div key={index} className="gallery-item" onClick={() => {
+                      setCurrentMediaIndex(index);
+                      setCurrentDisplayMode("media");
+                    }}>
+                      <div className="gallery-thumbnail">
+                        {isImageFile(item.url) && <img src={item.url} alt={item.title} />}
+                        {isVideoFile(item.url) && <div className="video-placeholder">▶</div>}
+                        {isPageFile(item) && <div className="page-placeholder">📄</div>}
+                      </div>
+                      <span className="gallery-label">{index + 1}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : currentMedia ? (
+          isPageFile(currentMedia) ? (
+            <PageDisplay
+              pageContent={pageContent}
+              isFullScreen={isFullScreen}
+            />
+          ) : currentMedia.url && isImageFile(currentMedia.url) ? (
             <img
               ref={imageRef}
               className="video-image image-file"
@@ -1337,7 +1505,7 @@ function FeedPlayer({
         {selectedOption === "url" && (
           <Popup {...{ setVideoData, setSelectedOption }} />
         )}
-        {showFeedsDropdown && (
+        {showFeedsDropdown && !isViewPageMode && (
           <div className="FeedPlayer__dropdown FeedPlayer__dropdown--upper-left">
             <div className="FeedPlayer__dropdown-header">
               <button 
@@ -1358,6 +1526,12 @@ function FeedPlayer({
                 </span>
                 <div className="FeedPlayer__caret"></div>
               </div>
+              {/* Scene Indicator - positioned after FeedPlayer__select */}
+              {playerHashFromCache && showSceneIndicator && (
+                <div className="FeedPlayer__scene-indicator">
+                  Scene {currentMediaIndex + 1}
+                </div>
+              )}
             </div>
             <ul
               className={`FeedPlayer__menu ${
@@ -1417,6 +1591,38 @@ function FeedPlayer({
             </ul>
           </div>
         )}
+
+        {/* Display Modes Popup */}
+        {showDisplayModesPopup && (
+          <div className="FeedPlayer__display-modes-popup">
+            <div className="display-modes-header">
+              <span>Display Modes</span>
+              <button 
+                className="popup-close"
+                onClick={() => setShowDisplayModesPopup(false)}
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="display-modes-grid">
+              {displayModes.map((mode) => (
+                <button
+                  key={mode.key}
+                  className={`display-mode-btn ${currentDisplayMode === mode.key ? "active" : ""}`}
+                  onClick={() => {
+                    setCurrentDisplayMode(mode.key);
+                    setShowDisplayModesPopup(false);
+                  }}
+                  title={mode.label}
+                >
+                  <i className={mode.icon}></i>
+                  <span>{mode.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <div className="FeedPlayer__controls">
         <div className="control-group control-group-btn">
@@ -1473,6 +1679,27 @@ function FeedPlayer({
               />
             </>
           )}
+          
+          {/* Close View Page Button - positioned next to display modes */}
+          {isViewPageMode && (
+            <button
+              className="control-button close-view-page"
+              onClick={exitViewPageMode}
+              title="Close page view"
+            >
+              <i className="ri-close-line"></i>
+            </button>
+          )}
+          
+          {/* Display Modes Button */}
+          <button
+            className="control-button display-modes"
+            onClick={() => setShowDisplayModesPopup(!showDisplayModesPopup)}
+            title="Display Modes"
+          >
+            <i className="ri-layout-grid-line"></i>
+          </button>
+          
           <button
             className="control-button full-screen"
             onClick={toggleFullScreen}
@@ -1499,6 +1726,7 @@ FeedPlayer.propTypes = {
   swiperData: PropTypes.object,
   setSwiperData: PropTypes.func.isRequired,
   playerHashFromCache: PropTypes.bool,
+  pageContent: PropTypes.string,
 };
 
 export default FeedPlayer;

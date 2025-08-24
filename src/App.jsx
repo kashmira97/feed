@@ -215,9 +215,11 @@ function App() {
           setCurrentView("FeedPlayer");
         }
       } else if (params.get('page') === 'true') {
-        setPlayerType("page");
-        setShowPageView(true); // Show page when explicitly requested
+        // Legacy support - redirect page requests to video mode with page scene
+        setPlayerType("video");
+        setShowPageView(false);
         setShowMemberSenseOverlay(false);
+        // The page scene will be handled by FeedPlayer internally
       } else {
         // Default to video player (whether list is specified or not)
         setPlayerType("video");
@@ -528,6 +530,7 @@ function App() {
                 swiperData={swiperData}
                 setSwiperData={setSwiperData}
                 playerHashFromCache={true}
+                pageContent={pageContent}
                 {...commonProps}
               />
             ) : (
@@ -647,15 +650,9 @@ function App() {
                       <Link size={24} />
                       <span>Paste Your Video URL</span>
                     </button>
-                    <button onClick={() => {
-                      if (showPageView) {
-                        window.location.hash = '#list=nasa';
-                      } else {
-                        window.location.hash = '#page=true';
-                      }
-                    }}>
+                    <button onClick={() => handleMenuClick("viewPage")}>
                       <Video size={24} />
-                      <span>{showPageView ? "View Player" : "View Page"}</span>
+                      <span>View Page</span>
                     </button>
                   </div>
                 )}
@@ -699,16 +696,9 @@ function App() {
                           <Link size={24} />
                           <span>Paste Your Video URL</span>
                         </li>
-                        <li className="menu-item" onClick={() => {
-                          if (showPageView) {
-                            window.location.hash = '#list=nasa';
-                          } else {
-                            window.location.hash = '#page=true';
-                          }
-                          setIsMenu(false);
-                        }}>
+                        <li className="menu-item" onClick={() => handleMenuClick("viewPage")}>
                           <Video size={24} />
-                          <span>{showPageView ? "View Player" : "View Page"}</span>
+                          <span>View Page</span>
                         </li>
                       </>
                     )}
