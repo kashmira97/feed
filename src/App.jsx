@@ -67,6 +67,8 @@ function App() {
   const [isPopup, setIsPopup] = useState(false);
   const menuRef = useRef(null);
   const [isMenu, setIsMenu] = useState(false);
+  const [showPageView, setShowPageView] = useState(true); // Show page initially
+  const [pageContent, setPageContent] = useState('');
 
   // Auth state
   const [token, setToken] = useState("");
@@ -113,11 +115,100 @@ function App() {
     if (isMenu) setIsMenu(false);
   }, [currentView]);
 
+  // Function to determine correct path based on current location
+  const getProjectsPath = () => {
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/dist')) {
+      // We're in dist context, need to go up one more level
+      return '../../team/projects/index.html';
+    } else if (currentPath.includes('/feed')) {
+      // We're in feed folder
+      return '../team/projects/index.html';
+    } else {
+      // Direct access
+      return 'team/projects/index.html';
+    }
+  };
+
+  // Function to adjust paths in the loaded HTML content
+  const adjustPaths = (htmlContent) => {
+    const currentPath = window.location.pathname;
+    let pathPrefix = '';
+    
+    if (currentPath.includes('/dist')) {
+      pathPrefix = '../../team/';
+    } else if (currentPath.includes('/feed')) {
+      pathPrefix = '../team/';
+    } else {
+      pathPrefix = 'team/';
+    }
+
+    // Adjust relative paths in the HTML
+    return htmlContent
+      // Fix CSS and JS paths that start with ../
+      .replace(/href="\.\.\/css\//g, `href="${pathPrefix}css/`)
+      .replace(/src="\.\.\/js\//g, `src="${pathPrefix}js/`)
+      .replace(/href="\.\.\/img\//g, `href="${pathPrefix}img/`)
+      .replace(/src="\.\.\/img\//g, `src="${pathPrefix}img/`)
+      // Fix localsite paths
+      .replace(/href="\.\.\/\.\.\/localsite\//g, 'href="localsite/')
+      .replace(/src="\.\.\/\.\.\/localsite\//g, 'src="localsite/')
+      // Fix any other team relative paths
+      .replace(/href="([^"]*\.css)"/g, (match, path) => {
+        if (path.startsWith('http') || path.startsWith('/') || path.includes('team/')) {
+          return match;
+        }
+        return `href="${pathPrefix}${path}"`;
+      })
+      .replace(/src="([^"]*\.(js|png|jpg|jpeg|gif|svg))"/g, (match, path) => {
+        if (path.startsWith('http') || path.startsWith('/') || path.includes('team/')) {
+          return match;
+        }
+        return `src="${pathPrefix}${path}"`;
+      });
+  };
+
+  // Function to fetch and load the projects page
+  const loadProjectsPage = async () => {
+    try {
+      const projectsPath = getProjectsPath();
+      const response = await fetch(projectsPath);
+      
+      if (!response.ok) {
+        console.warn(`Could not load projects page from ${projectsPath}`);
+        return;
+      }
+      
+      let htmlContent = await response.text();
+      
+      // Extract just the body content (everything between <body> and </body>)
+      const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      if (bodyMatch) {
+        htmlContent = bodyMatch[1];
+      }
+      
+      // Adjust paths in the content
+      htmlContent = adjustPaths(htmlContent);
+      
+      setPageContent(htmlContent);
+      console.log('Successfully loaded team/projects page');
+    } catch (error) {
+      console.warn('Error loading projects page:', error);
+    }
+  };
+
   // Hash detection effect
   useEffect(() => {
     const checkHash = () => {
       const hash = window.location.hash.substring(1); // Remove the leading '#'
       const params = new URLSearchParams(hash);
+      
+      // Check if a list parameter is specified
+      if (params.get('list')) {
+        setShowPageView(false); // Show FeedPlayer when list is specified
+      } else {
+        setShowPageView(true); // Show page when no list is specified
+      }
       
       if (params.get('members') === 'discord') {
         setShowMemberSenseOverlay(true);
@@ -140,6 +231,11 @@ function App() {
       window.removeEventListener('hashchange', checkHash);
     };
   }, [currentView]);
+
+  // Load projects page on initial mount
+  useEffect(() => {
+    loadProjectsPage();
+  }, []);
 
   // Effects
   useEffect(() => {
@@ -380,19 +476,33 @@ function App() {
     switch (currentView) {
       case "FeedPlayer":
         return (
-          <div className="feedplayer-container">
-            <VideoPlayer
-              autoplay={false}
-              isFullScreen={isFullScreen}
-              setIsFullScreen={setIsFullScreen}
-              handleFullScreen={handleFullScreen}
-              selectedOption={selectedOption}
-              setSelectedOption={setSelectedOption}
-              swiperData={swiperData}
-              setSwiperData={setSwiperData}
-              playerHashFromCache={true}
-            />
-            {sidePanelView && (
+          <div className="feedplayer-wrapper">
+            {/* Page Container - shown when no list is specified */}
+            {showPageView && (
+              <div 
+                className="page-container" 
+                dangerouslySetInnerHTML={{ __html: pageContent }}
+              />
+            )}
+            
+            {/* FeedPlayer Container - shown when list is specified */}
+            {!showPageView && (
+              <div className="feedplayer-container">
+                <VideoPlayer
+                  autoplay={false}
+                  isFullScreen={isFullScreen}
+                  setIsFullScreen={setIsFullScreen}
+                  handleFullScreen={handleFullScreen}
+                  selectedOption={selectedOption}
+                  setSelectedOption={setSelectedOption}
+                  swiperData={swiperData}
+                  setSwiperData={setSwiperData}
+                  playerHashFromCache={true}
+                />
+              </div>
+            )}
+            
+            {sidePanelView && !showPageView && (
               <div className={`membersense-side-panel ${sidePanelExpanded ? 'expanded' : ''}`}>
                 <div className="side-panel-controls">
                   <button 
@@ -545,6 +655,10 @@ function App() {
                       <Link size={24} />
                       <span>Paste Your Video URL</span>
                     </button>
+                    <button onClick={() => setShowPageView(!showPageView)}>
+                      <Video size={24} />
+                      <span>{showPageView ? "View Player" : "View Page"}</span>
+                    </button>
                   </div>
                 )}
                 {renderNavItems(mediaItems)}
@@ -586,6 +700,13 @@ function App() {
                         <li className="menu-item" onClick={() => handleMenuClick("url")}>
                           <Link size={24} />
                           <span>Paste Your Video URL</span>
+                        </li>
+                        <li className="menu-item" onClick={() => {
+                          setShowPageView(!showPageView);
+                          setIsMenu(false);
+                        }}>
+                          <Video size={24} />
+                          <span>{showPageView ? "View Player" : "View Page"}</span>
                         </li>
                       </>
                     )}
