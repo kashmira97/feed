@@ -19,8 +19,7 @@ import {
 import MemberSense from "./components/MemberSenseComponents/MemberSenseLogin/MemberSense";
 import MemberShowcase from "./components/MemberSenseComponents/MemberShowcase/MemberShowcase";
 import DiscordChannelViewer from "./components/MemberSenseComponents/DiscordChannelViewer/DiscordChannelViewer";
-import Player from "./components/Player/Player";
-import OriginalFeedPlayer from "./components/FeedPlayer/FeedPlayer";
+import FeedPlayer from "./components/FeedPlayer/FeedPlayer";
 
 // Context
 import ContextProvider from "./Context/ContextGoogle";
@@ -44,9 +43,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Discord token will be retrieved from backend instead of being embedded
 let DISCORD_BOT_TOKEN = null;
 
-// Web Component Registration - using unified Player component
-const PlayerComponent = reactToWebComponent(Player, React, ReactDOM);
-customElements.define("feed-player-widget", PlayerComponent);
+// Web Component Registration - using unified FeedPlayer component
+const FeedPlayerComponent = reactToWebComponent(FeedPlayer, React, ReactDOM);
+customElements.define("feed-player-widget", FeedPlayerComponent);
 
 function App() {
   // Navigation state
@@ -70,7 +69,6 @@ function App() {
   const [isMenu, setIsMenu] = useState(false);
   const [showPageView, setShowPageView] = useState(false); // Show video player initially
   const [pageContent, setPageContent] = useState('');
-  const [playerType, setPlayerType] = useState("video"); // "video", "page", "member"
   const [viewMode, setViewMode] = useState("full"); // "full", "columns", "table", "list", "gallery"
 
   // Auth state
@@ -206,24 +204,20 @@ function App() {
       const hash = window.location.hash.substring(1); // Remove the leading '#'
       const params = new URLSearchParams(hash);
       
-      // Determine player type based on URL parameters
+      // Handle URL parameters for different modes
       if (params.get('members') === 'discord') {
-        setPlayerType("member");
         setShowPageView(false);
         setShowMemberSenseOverlay(true);
         if (currentView !== "FeedPlayer") {
           setCurrentView("FeedPlayer");
         }
       } else if (params.get('page') === 'true') {
-        // Legacy support - redirect page requests to video mode with page scene
-        setPlayerType("video");
+        // Legacy support - page scenes handled by FeedPlayer internally
         setShowPageView(false);
         setShowMemberSenseOverlay(false);
-        // The page scene will be handled by FeedPlayer internally
       } else {
-        // Default to video player (whether list is specified or not)
-        setPlayerType("video");
-        setShowPageView(false); // Show VideoPlayer by default
+        // Default mode
+        setShowPageView(false);
         setShowMemberSenseOverlay(false);
       }
 
@@ -518,42 +512,20 @@ function App() {
       case "FeedPlayer":
         return (
           <div className="feedplayer-wrapper">
-            {/* Use original FeedPlayer for video mode, unified Player for others */}
-            {playerType === "video" ? (
-              <OriginalFeedPlayer
-                autoplay={false}
-                isFullScreen={isFullScreen}
-                setIsFullScreen={setIsFullScreen}
-                handleFullScreen={handleFullScreen}
-                selectedOption={selectedOption}
-                setSelectedOption={setSelectedOption}
-                swiperData={swiperData}
-                setSwiperData={setSwiperData}
-                playerHashFromCache={true}
-                pageContent={pageContent}
-                {...commonProps}
-              />
-            ) : (
-              <Player
-                playerType={playerType}
-                viewMode={viewMode}
-                isFullScreen={isFullScreen}
-                setIsFullScreen={setIsFullScreen}
-                handleFullScreen={handleFullScreen}
-                // Page player props
-                pageContent={pageContent}
-                // Member player props
-                channels={channels}
-                messages={messages}
-                members={members}
-                selectedChannel={selectedChannel}
-                onChannelSelect={setSelectedChannel}
-                token={token}
-                // Common props
-                isLoading={isLoading}
-                {...commonProps}
-              />
-            )}
+            {/* Use unified FeedPlayer for all content types */}
+            <FeedPlayer
+              autoplay={false}
+              isFullScreen={isFullScreen}
+              setIsFullScreen={setIsFullScreen}
+              handleFullScreen={handleFullScreen}
+              selectedOption={selectedOption}
+              setSelectedOption={setSelectedOption}
+              swiperData={swiperData}
+              setSwiperData={setSwiperData}
+              playerHashFromCache={true}
+              pageContent={pageContent}
+              {...commonProps}
+            />
           </div>
         );
       case "MemberSense":

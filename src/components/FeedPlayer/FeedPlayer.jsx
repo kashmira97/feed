@@ -83,6 +83,7 @@ function FeedPlayer({
   const [showDisplayModesPopup, setShowDisplayModesPopup] = useState(false); // 32 - Display modes popup
   const [currentDisplayMode, setCurrentDisplayMode] = useState("media"); // 33 - Current display mode
   const [isViewPageMode, setIsViewPageMode] = useState(false); // 34 - Track if in View Page mode
+  const [previousMediaState, setPreviousMediaState] = useState(null); // 35 - Store previous media state before View Page
 
   const imageDuration = 4;
   const pageDuration = 10; // Pages last 10 seconds
@@ -101,6 +102,13 @@ function FeedPlayer({
   // Handle view page action
   useEffect(() => {
     if (selectedOption === "viewPage") {
+      // Store current state before switching to View Page
+      setPreviousMediaState({
+        media: currentMedia,
+        index: currentMediaIndex,
+        list: [...selectedMediaList]
+      });
+      
       // Create a page scene and add it to the current media list
       const pageScene = {
         type: 'page',
@@ -123,19 +131,25 @@ function FeedPlayer({
       // Clear the selected option
       setSelectedOption("");
     }
-  }, [selectedOption, selectedMediaList, setSelectedOption]);
+  }, [selectedOption, selectedMediaList, currentMedia, currentMediaIndex, setSelectedOption]);
 
   // Function to exit View Page mode
   const exitViewPageMode = () => {
     setIsViewPageMode(false);
-    // Remove the page scene from the list and return to original list
-    setSelectedMediaList(prev => prev.filter(item => item.type !== 'page'));
-    // Return to first item in original list if available
-    if (selectedMediaList.length > 1) {
-      setCurrentMediaIndex(0);
-      const firstNonPageItem = selectedMediaList.find(item => item.type !== 'page');
-      if (firstNonPageItem) {
-        setCurrentMedia(firstNonPageItem);
+    
+    // Restore previous state if available
+    if (previousMediaState) {
+      setSelectedMediaList(previousMediaState.list);
+      setCurrentMediaIndex(previousMediaState.index);
+      setCurrentMedia(previousMediaState.media);
+      setPreviousMediaState(null);
+    } else {
+      // Fallback: remove page scenes and return to first non-page item
+      const filteredList = selectedMediaList.filter(item => item.type !== 'page');
+      setSelectedMediaList(filteredList);
+      if (filteredList.length > 0) {
+        setCurrentMediaIndex(0);
+        setCurrentMedia(filteredList[0]);
       }
     }
   };
