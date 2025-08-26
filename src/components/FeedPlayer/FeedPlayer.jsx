@@ -7,6 +7,18 @@ import PropTypes from "prop-types";
 import { FaChevronUp, FaChevronDown, FaPlay, FaPause } from "react-icons/fa";
 import Popup from "../Popup/Popup";
 import PageDisplay from "../PageDisplay/PageDisplay";
+
+// Function to determine correct path for cities.csv based on current location
+const getCitiesCsvPath = () => {
+  const currentPath = window.location.pathname;
+  if (currentPath.includes('/dist')) {
+    return '../../team/projects/map/cities.csv';
+  } else if (currentPath.includes('/feed')) {
+    return '../team/projects/map/cities.csv';
+  } else {
+    return 'team/projects/map/cities.csv';
+  }
+};
 import Papa from "papaparse";
 
 function FeedPlayer({
@@ -627,6 +639,35 @@ function FeedPlayer({
           title: videoData.title,
         };
       }
+      
+      // Special handling for cities feed - load from local CSV
+      if (media.feed.trim().toLowerCase() === "cities") {
+        const citiesCsvPath = getCitiesCsvPath();
+        const citiesResponse = await axios.get(citiesCsvPath);
+        
+        return new Promise((resolve) => {
+          Papa.parse(citiesResponse.data, {
+            header: true,
+            complete: (results) => {
+              const cityScenes = results.data
+                .filter((row) => row.City && row.City.trim() !== '')
+                .map((row) => ({
+                  url: '', // Cities don't have image URLs
+                  text: `${row.City}, ${row.County || ''} County - Population: ${row.Population || 'Unknown'}\nCoordinates: ${row.Latitude}, ${row.Longitude}`,
+                  title: row.City,
+                  type: 'city', // Mark as city type
+                  cityData: row // Store original data
+                }));
+              resolve(cityScenes);
+            },
+            error: (error) => {
+              console.error('Error parsing cities CSV:', error);
+              resolve([]);
+            }
+          });
+        });
+      }
+      
       const response = await axios.get(media.url);
       switch (media.feed.trim().toLowerCase()) {
         case "seeclickfix-311":

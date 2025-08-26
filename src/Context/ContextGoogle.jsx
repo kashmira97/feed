@@ -6,6 +6,21 @@ import Papa from "papaparse";
 
 const Context = createContext();
 
+// Function to determine correct path based on current location
+const getCitiesCsvPath = () => {
+  const currentPath = window.location.pathname;
+  if (currentPath.includes('/dist')) {
+    // We're in dist context, need to go up more levels
+    return '../../team/projects/map/cities.csv';
+  } else if (currentPath.includes('/feed')) {
+    // We're in feed folder
+    return '../team/projects/map/cities.csv';
+  } else {
+    // Direct access from webroot
+    return 'team/projects/map/cities.csv';
+  }
+};
+
 export default function ContextProvider({ children }) {
   const [mediaList, setMediaList] = useState([]);
   const [currentMedia, setCurrentMedia] = useState(null);
@@ -55,7 +70,57 @@ export default function ContextProvider({ children }) {
           },
         });
       } catch (error) {
-        console.error("❌ ContextGoogle: Error fetching media:", error);
+        console.error("❌ ContextGoogle: Error fetching Google Sheets data:", error);
+        console.log("🔄 ContextGoogle: Attempting to load local cities.csv fallback...");
+        
+        // Fallback to local cities.csv
+        try {
+          const citiesCsvPath = getCitiesCsvPath();
+          console.log("📍 ContextGoogle: Loading cities CSV from:", citiesCsvPath);
+          
+          const citiesResponse = await axios.get(citiesCsvPath);
+          console.log("✅ ContextGoogle: Successfully fetched cities.csv fallback");
+          
+          Papa.parse(citiesResponse.data, {
+            header: true,
+            complete: (results) => {
+              console.log("🔍 ContextGoogle: Parsing cities CSV results:", results.data.length, "rows");
+              
+              // Create a single 'Cities' feed entry for the dropdown
+              // Individual cities will be loaded as scenes when this feed is selected
+              const citiesMedia = [{
+                feed: "cities",
+                title: "Cities", 
+                text: "TRUE",
+                description: "Georgia cities with population and location data",
+                url: '', // Will be populated by FeedPlayer when selected
+                feedFields: 'City,County,FIPS,Population,Latitude,Longitude'
+              }];
+              
+              console.log("✅ ContextGoogle: Processed cities fallback:", citiesMedia.length, "items");
+              console.log("🏙️ ContextGoogle: City names:", citiesMedia.map(m => m.title));
+              
+              setMediaList(citiesMedia);
+              
+              // Set first city as current if none selected
+              if (citiesMedia.length > 0) {
+                console.log("🎯 ContextGoogle: Setting first city as current:", citiesMedia[0].title);
+                setCurrentMedia(citiesMedia[0]);
+              }
+            },
+            error: (parseError) => {
+              console.error("❌ ContextGoogle: Error parsing cities CSV:", parseError);
+              // Set empty state if even fallback fails
+              setMediaList([]);
+              setCurrentMedia(null);
+            }
+          });
+        } catch (fallbackError) {
+          console.error("❌ ContextGoogle: Cities.csv fallback also failed:", fallbackError);
+          console.log("⚠️ ContextGoogle: No media data available - setting empty state");
+          setMediaList([]);
+          setCurrentMedia(null);
+        }
       }
     };
 
