@@ -524,6 +524,20 @@ function App() {
               setSwiperData={setSwiperData}
               playerHashFromCache={true}
               pageContent={pageContent}
+              showMemberSenseOverlay={showMemberSenseOverlay}
+              setShowMemberSenseOverlay={setShowMemberSenseOverlay}
+              memberSenseProps={{
+                onValidToken: handleLogin,
+                initialToken: token,
+                isLoading: isLoading,
+                error: error,
+                isLoggedIn: isLoggedIn,
+                isLoggingOut: isLoggingOut,
+                serverInfo: serverInfo,
+                useMockData: useMockData,
+                onToggleMockData: (value) => setUseMockData(value),
+                handleViewChange: handleViewChange
+              }}
               {...commonProps}
             />
           </div>
@@ -693,50 +707,9 @@ function App() {
             </div>
           </div>
         )}
-        {error && (
-          <div className="error-message">
-            <AlertCircle className="error-icon" />
-            <p>{error}</p>
-          </div>
-        )}
+        {/* Error message is now handled within the MemberSense overlay */}
         <main className={`app-content ${isTransitioning ? "fade-out" : "fade-in"}`}>{renderContent()}</main>
-        {showMemberSenseOverlay && (
-          <div className="membersense-overlay">
-            <button 
-              className="close-overlay-btn" 
-              onClick={() => {
-                setShowMemberSenseOverlay(false);
-                // Remove members parameter while preserving other hash parameters
-                const hash = window.location.hash.substring(1);
-                const params = new URLSearchParams(hash);
-                params.delete('members');
-                const newHash = params.toString();
-                if (newHash) {
-                  window.location.hash = '#' + newHash;
-                } else {
-                  window.history.replaceState(null, null, window.location.pathname + window.location.search);
-                }
-              }}
-            >
-              ×
-            </button>
-            <div className="membersense-overlay-content">
-              <MemberSense
-                onValidToken={handleLogin}
-                initialToken={token}
-                isLoading={isLoading}
-                error={error}
-                isLoggedIn={isLoggedIn}
-                isLoggingOut={isLoggingOut}
-                serverInfo={serverInfo}
-                isFullScreen={false}
-                useMockData={useMockData}
-                onToggleMockData={(value) => setUseMockData(value)}
-                handleViewChange={handleViewChange}
-              />
-            </div>
-          </div>
-        )}
+        {/* MemberSense overlay is now rendered inside FeedPlayer component */}
         {isPopup && (
           <div className="lightbox" onClick={() => setIsPopup(null)}>
             <button className="close-btn" onClick={() => setIsPopup(null)}>

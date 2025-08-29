@@ -7,6 +7,7 @@ import PropTypes from "prop-types";
 import { FaChevronUp, FaChevronDown, FaPlay, FaPause } from "react-icons/fa";
 import Popup from "../Popup/Popup";
 import PageDisplay from "../PageDisplay/PageDisplay";
+import MemberSense from "../MemberSenseComponents/MemberSenseLogin/MemberSense";
 
 // Function to determine correct path for cities.csv based on current location
 const getCitiesCsvPath = () => {
@@ -32,6 +33,9 @@ function FeedPlayer({
   setSwiperData,
   playerHashFromCache = true,
   pageContent = "", // Add page content prop
+  showMemberSenseOverlay = false,
+  setShowMemberSenseOverlay,
+  memberSenseProps = {},
 }) {
   
   // Utility function to detect if we're in dist context and adjust paths
@@ -1678,6 +1682,78 @@ function FeedPlayer({
                   <span>{mode.label}</span>
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+        
+        {/* MemberSense overlay */}
+        {showMemberSenseOverlay && (
+          <div className="membersense-overlay">
+            <div className="membersense-left-column">
+              {/* Error message positioned at bottom of left column */}
+              {memberSenseProps.error && (
+                <div className="membersense-error-container">
+                  <div className="error-message">
+                    <div className="error-icon">⚠️</div>
+                    <p>{memberSenseProps.error}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Left column content with transparent centered box */}
+              <div className="membersense-left-content">
+                <div className="membersense-content-box">
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎬</div>
+                  <p>Ready for Action</p>
+                  <p style={{ fontSize: '12px', marginTop: '10px' }}>
+                    {(() => {
+                      const hash = window.location.hash.substring(1);
+                      const params = new URLSearchParams(hash);
+                      const listName = params.get('list');
+                      return listName || 'No list selected';
+                    })()}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="membersense-right-column">
+              {/* Close button moved to upper left of right column */}
+              <button 
+                className="close-overlay-btn" 
+                onClick={() => {
+                  setShowMemberSenseOverlay(false);
+                  // Remove members parameter while preserving other hash parameters
+                  const hash = window.location.hash.substring(1);
+                  const params = new URLSearchParams(hash);
+                  params.delete('members');
+                  const newHash = params.toString();
+                  if (newHash) {
+                    window.location.hash = '#' + newHash;
+                  } else {
+                    window.history.replaceState(null, null, window.location.pathname + window.location.search);
+                  }
+                }}
+              >
+                ×
+              </button>
+              
+              {/* Main MemberSense content */}
+              <div className="membersense-overlay-content">
+                <MemberSense
+                  onValidToken={memberSenseProps.onValidToken}
+                  initialToken={memberSenseProps.initialToken}
+                  isLoading={memberSenseProps.isLoading}
+                  error={memberSenseProps.error}
+                  isLoggedIn={memberSenseProps.isLoggedIn}
+                  isLoggingOut={memberSenseProps.isLoggingOut}
+                  serverInfo={memberSenseProps.serverInfo}
+                  isFullScreen={false}
+                  useMockData={memberSenseProps.useMockData}
+                  onToggleMockData={memberSenseProps.onToggleMockData}
+                  handleViewChange={memberSenseProps.handleViewChange}
+                />
+              </div>
             </div>
           </div>
         )}
