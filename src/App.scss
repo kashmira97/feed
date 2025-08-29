@@ -777,6 +777,16 @@
   // FeedPlayer content automatically adjusts since overlay is now contained within video container
 }
 
+// Override localsite navigation z-index to make side-nav-menu overlap sideIcons
+#side-nav-menu {
+  z-index: 1000 !important;
+  position: relative;
+}
+
+#sideIcons {
+  z-index: 999 !important;
+}
+
 // MemberSense Side Panel Styles
 .feedplayer-container {
   position: relative;
