@@ -5,7 +5,7 @@ import 'remixicon/fonts/remixicon.css';
 import ContextProvider from './Context/Context.jsx';
 import App from './App.jsx';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('playerRoot')).render(
   <React.StrictMode>
     <ContextProvider>
       <App />

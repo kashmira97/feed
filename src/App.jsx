@@ -98,6 +98,7 @@ function App() {
 
   const handleMenuClick = (option) => {
     setIsMenu(false);
+    setIsMenuOpen(false);
     setSelectedOption(option);
   };
 
@@ -397,6 +398,10 @@ function App() {
   };
 
   const handleLogout = async () => {
+    // Close menus when logging out
+    setIsMenuOpen(false);
+    setIsMenu(false);
+    
     if (useMockData) {
       setIsLoggingOut(true);
       setIsTransitioning(true);
@@ -436,6 +441,10 @@ function App() {
   };
 
   const handleViewChange = (view) => {
+    // Close menus when selecting an item
+    setIsMenuOpen(false);
+    setIsMenu(false);
+    
     if (view === "Showcase" || view === "DiscordViewer") {
       // Use unified Player for MemberSense features
       window.location.hash = '#members=discord';
@@ -460,16 +469,12 @@ function App() {
           });
       }
     } else if (view === "MemberSense") {
-      // Switch to MemberSense login view
-      setError("");
-      setIsTransitioning(true);
-      setIsLoading(true);
-      setTimeout(() => {
-        setCurrentView(view);
-        setSidePanelView(null);
-        setIsTransitioning(false);
-        setTimeout(() => setIsLoading(false), 500);
-      }, 300);
+      // Show MemberSense overlay instead of switching views
+      if (currentView !== "FeedPlayer") {
+        setCurrentView("FeedPlayer");
+      }
+      window.location.hash = '#members=discord';
+      setShowMemberSenseOverlay(true);
     } else {
       // Normal view change
       setError("");
@@ -485,6 +490,10 @@ function App() {
   };
 
   const handleFullScreen = () => {
+    // Close menus when toggling fullscreen
+    setIsMenuOpen(false);
+    setIsMenu(false);
+    
     if (!isFullScreen) {
       if (appRef.current.requestFullscreen) {
         appRef.current.requestFullscreen();

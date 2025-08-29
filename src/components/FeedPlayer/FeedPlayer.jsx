@@ -100,6 +100,7 @@ function FeedPlayer({
   const [currentDisplayMode, setCurrentDisplayMode] = useState("media"); // 33 - Current display mode
   const [isViewPageMode, setIsViewPageMode] = useState(false); // 34 - Track if in View Page mode
   const [previousMediaState, setPreviousMediaState] = useState(null); // 35 - Store previous media state before View Page
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false); // 36 - Track narrow screen based on #playerRoot width
 
   const imageDuration = 4;
   const pageDuration = 10; // Pages last 10 seconds
@@ -114,6 +115,37 @@ function FeedPlayer({
     { key: "list", label: "List", icon: "ri-list-check" },
     { key: "gallery", label: "Gallery", icon: "ri-gallery-line" }
   ];
+
+  // Effect to detect narrow screen - switch when right column would be less than 50% of playerRoot
+  useEffect(() => {
+    const checkScreenWidth = () => {
+      const playerRoot = document.getElementById('playerRoot');
+      if (playerRoot) {
+        const width = playerRoot.clientWidth;
+        // Normal layout: left (flex: 2) + right (flex: 1) = 3 parts total
+        // Right column = width * (1/3) in normal mode
+        // Switch to narrow when: right column width < 50% of total playerRoot width
+        // So: (width / 3) < (width * 0.5)
+        // Simplifying: width/3 < width/2 => 1/3 < 1/2 => 2 < 3 (always true)
+        // This means: always narrow, which is wrong
+        //
+        // I think the request means: switch when playerRoot becomes narrow enough
+        // that showing the right column at 1/3 width would make it too small
+        // Let's use: switch when playerRoot width < 1200px (so right column would be < 400px)
+        setIsNarrowScreen(width < 1200);
+      }
+    };
+
+    // Check on mount
+    checkScreenWidth();
+
+    // Check on resize
+    window.addEventListener('resize', checkScreenWidth);
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenWidth);
+    };
+  }, []);
 
   // Handle view page action
   useEffect(() => {
@@ -830,6 +862,22 @@ function FeedPlayer({
     return media && media.type === 'page';
   };
 
+  // Helper function to extract filename without extension and add spaces to camelCase
+  const formatFileName = (url) => {
+    if (!url) return 'Unknown';
+    
+    // Extract filename from URL
+    const filename = url.split('/').pop().split('?')[0]; // Remove query params
+    
+    // Remove file extension
+    const nameWithoutExtension = filename.replace(/\.[^/.]+$/, '');
+    
+    // Add spaces before camelCase letters
+    const spacedName = nameWithoutExtension.replace(/([a-z])([A-Z])/g, '$1 $2');
+    
+    return spacedName;
+  };
+
   const handlePlayPause = () => {
     setUserHasInteracted(true); // Mark that user has interacted
     if (isPlaying) {
@@ -1323,19 +1371,42 @@ function FeedPlayer({
           <div className={`FeedPlayer__display-mode-content display-mode--${currentDisplayMode}`}>
             {currentDisplayMode === "full" && (
               <div className="display-full">
-                <h2>Full View</h2>
+                <div id="layoutTitle">
+                  Full View
+                  <button 
+                    className="display-close-btn" 
+                    onClick={() => setCurrentDisplayMode("media")}
+                    title="Close"
+                  >
+                    ×
+                  </button>
+                </div>
                 <p>Full scene view with detailed information</p>
                 {/* This would show expanded scene details */}
               </div>
             )}
             {currentDisplayMode === "columns" && (
               <div className="display-columns">
-                <h2>Columns View</h2>
+                <div id="layoutTitle">
+                  Columns View
+                  <button 
+                    className="display-close-btn" 
+                    onClick={() => setCurrentDisplayMode("media")}
+                    title="Close"
+                  >
+                    ×
+                  </button>
+                </div>
                 <div className="columns-grid">
                   {selectedMediaList.slice(0, 6).map((item, index) => (
                     <div key={index} className="column-item">
                       <div className="column-thumbnail">
                         {isImageFile(item.url) && <img src={item.url} alt={item.title} />}
+                        {isVideoFile(item.url) && (
+                          <div className="video-placeholder">
+                            <span className="video-filename">{formatFileName(item.url)}</span>
+                          </div>
+                        )}
                       </div>
                       <span>{item.title || `Scene ${index + 1}`}</span>
                     </div>
@@ -1345,7 +1416,16 @@ function FeedPlayer({
             )}
             {currentDisplayMode === "table" && (
               <div className="display-table">
-                <h2>Table View</h2>
+                <div id="layoutTitle">
+                  Table View
+                  <button 
+                    className="display-close-btn" 
+                    onClick={() => setCurrentDisplayMode("media")}
+                    title="Close"
+                  >
+                    ×
+                  </button>
+                </div>
                 <table>
                   <thead>
                     <tr>
@@ -1370,7 +1450,16 @@ function FeedPlayer({
             )}
             {currentDisplayMode === "list" && (
               <div className="display-list">
-                <h2>List View</h2>
+                <div id="layoutTitle">
+                  List View
+                  <button 
+                    className="display-close-btn" 
+                    onClick={() => setCurrentDisplayMode("media")}
+                    title="Close"
+                  >
+                    ×
+                  </button>
+                </div>
                 <ul className="scene-list">
                   {selectedMediaList.map((item, index) => (
                     <li key={index} className="scene-list-item">
@@ -1384,7 +1473,16 @@ function FeedPlayer({
             )}
             {currentDisplayMode === "gallery" && (
               <div className="display-gallery">
-                <h2>Gallery View</h2>
+                <div id="layoutTitle">
+                  Gallery View
+                  <button 
+                    className="display-close-btn" 
+                    onClick={() => setCurrentDisplayMode("media")}
+                    title="Close"
+                  >
+                    ×
+                  </button>
+                </div>
                 <div className="gallery-grid">
                   {selectedMediaList.slice(0, 12).map((item, index) => (
                     <div key={index} className="gallery-item" onClick={() => {
@@ -1393,7 +1491,11 @@ function FeedPlayer({
                     }}>
                       <div className="gallery-thumbnail">
                         {isImageFile(item.url) && <img src={item.url} alt={item.title} />}
-                        {isVideoFile(item.url) && <div className="video-placeholder">▶</div>}
+                        {isVideoFile(item.url) && (
+                          <div className="video-placeholder">
+                            <span className="video-filename">{formatFileName(item.url)}</span>
+                          </div>
+                        )}
                         {isPageFile(item) && <div className="page-placeholder">📄</div>}
                       </div>
                       <span className="gallery-label">{index + 1}</span>
@@ -1485,7 +1587,15 @@ function FeedPlayer({
                 src={getAssetPath('src/assets/images/intro-landscape.jpg')}
                 alt="Error Placeholder"
                 className="placeholder-image"
-                style={{ display: "block", width: "100%", height: "auto" }}
+                style={{ 
+                  display: "block", 
+                  width: "100%", 
+                  height: "100%", 
+                  objectFit: "cover",
+                  position: "absolute",
+                  top: 0,
+                  left: 0
+                }}
               />
               <div className="unsupported-media-message">
                 Unsupported Media Type
@@ -1595,11 +1705,8 @@ function FeedPlayer({
                 </div>
               )}
             </div>
-            <ul
-              className={`FeedPlayer__menu ${
-                isDropdownActive ? "active" : ""
-              }`}
-            >
+            {isDropdownActive && (
+              <ul className="FeedPlayer__menu active">
               {mediaList &&
                 mediaList.map((media, idx) => (
                   <li
@@ -1650,7 +1757,8 @@ function FeedPlayer({
                     {media.title || media.feed}
                   </li>
                 ))}
-            </ul>
+              </ul>
+            )}
           </div>
         )}
 
@@ -1688,10 +1796,10 @@ function FeedPlayer({
         
         {/* MemberSense overlay */}
         {showMemberSenseOverlay && (
-          <div className="membersense-overlay">
+          <div className={`membersense-overlay ${isNarrowScreen ? 'narrow-screen' : ''}`}>
             <div className="membersense-left-column">
-              {/* Error message positioned at bottom of left column */}
-              {memberSenseProps.error && (
+              {/* Error message positioned at bottom of left column - only on wide screens */}
+              {memberSenseProps.error && !isNarrowScreen && (
                 <div className="membersense-error-container">
                   <div className="error-message">
                     <div className="error-icon">⚠️</div>
@@ -1714,13 +1822,14 @@ function FeedPlayer({
                     })()}
                   </p>
                 </div>
+                
               </div>
             </div>
             
             <div className="membersense-right-column">
-              {/* Close button moved to upper left of right column */}
+              {/* Close button - positioned in right column (shown on both wide and narrow screens) */}
               <button 
-                className="close-overlay-btn" 
+                className={`close-overlay-btn ${isNarrowScreen ? 'narrow-close-btn' : ''}`}
                 onClick={() => {
                   setShowMemberSenseOverlay(false);
                   // Remove members parameter while preserving other hash parameters
@@ -1737,6 +1846,16 @@ function FeedPlayer({
               >
                 ×
               </button>
+              
+              {/* Validation message for narrow screens - positioned at top of right column */}
+              {memberSenseProps.error && isNarrowScreen && (
+                <div className="membersense-narrow-validation">
+                  <div className="validation-message error">
+                    <div className="error-icon">⚠️</div>
+                    <p>{memberSenseProps.error}</p>
+                  </div>
+                </div>
+              )}
               
               {/* Main MemberSense content */}
               <div className="membersense-overlay-content">
