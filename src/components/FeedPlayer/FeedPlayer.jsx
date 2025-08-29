@@ -8,6 +8,8 @@ import { FaChevronUp, FaChevronDown, FaPlay, FaPause } from "react-icons/fa";
 import Popup from "../Popup/Popup";
 import PageDisplay from "../PageDisplay/PageDisplay";
 import MemberSense from "../MemberSenseComponents/MemberSenseLogin/MemberSense";
+import MemberShowcase from "../MemberSenseComponents/MemberShowcase/MemberShowcase";
+import DiscordChannelViewer from "../MemberSenseComponents/DiscordChannelViewer/DiscordChannelViewer";
 
 // Function to determine correct path for cities.csv based on current location
 const getCitiesCsvPath = () => {
@@ -36,6 +38,11 @@ function FeedPlayer({
   showMemberSenseOverlay = false,
   setShowMemberSenseOverlay,
   memberSenseProps = {},
+  // Menu-related props
+  isMenu = false,
+  setIsMenu,
+  handleMenuClick,
+  setCurrentView,
 }) {
   
   // Utility function to detect if we're in dist context and adjust paths
@@ -101,6 +108,15 @@ function FeedPlayer({
   const [isViewPageMode, setIsViewPageMode] = useState(false); // 34 - Track if in View Page mode
   const [previousMediaState, setPreviousMediaState] = useState(null); // 35 - Store previous media state before View Page
   const [isNarrowScreen, setIsNarrowScreen] = useState(false); // 36 - Track narrow screen based on #playerRoot width
+  const [showRightColumn, setShowRightColumn] = useState(true); // 37 - Control right column visibility
+  const [showControlsMenu, setShowControlsMenu] = useState(false); // 38 - Control menu visibility
+
+  // Reset right column visibility when overlay is shown
+  useEffect(() => {
+    if (showMemberSenseOverlay) {
+      setShowRightColumn(true);
+    }
+  }, [showMemberSenseOverlay]);
 
   const imageDuration = 4;
   const pageDuration = 10; // Pages last 10 seconds
@@ -1808,8 +1824,21 @@ function FeedPlayer({
                 </div>
               )}
               
-              {/* Left column content with transparent centered box */}
+              {/* Left column content - show Discord content if view is selected, otherwise show default */}
               <div className="membersense-left-content">
+                {/* Close button for left content - positioned in upper right */}
+                {memberSenseProps.sidePanelView && (
+                  <button 
+                    className="close-left-content-btn"
+                    onClick={() => {
+                      if (memberSenseProps.setSidePanelView) {
+                        memberSenseProps.setSidePanelView(null);
+                      }
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
                 <div className="membersense-content-box">
                   <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎬</div>
                   <p>Ready for Action</p>
@@ -1821,31 +1850,18 @@ function FeedPlayer({
                       return listName || 'No list selected';
                     })()}
                   </p>
+                  {memberSenseProps.sidePanelView && (
+                    <p style={{ fontSize: '12px', marginTop: '15px', fontStyle: 'italic' }}>
+                      {memberSenseProps.sidePanelView === "Showcase" ? "Members displayed in right panel" : 
+                       memberSenseProps.sidePanelView === "DiscordViewer" ? "Posts displayed in right panel" : ""}
+                    </p>
+                  )}
                 </div>
-                
               </div>
             </div>
             
-            <div className="membersense-right-column">
-              {/* Close button - positioned in right column (shown on both wide and narrow screens) */}
-              <button 
-                className={`close-overlay-btn ${isNarrowScreen ? 'narrow-close-btn' : ''}`}
-                onClick={() => {
-                  setShowMemberSenseOverlay(false);
-                  // Remove members parameter while preserving other hash parameters
-                  const hash = window.location.hash.substring(1);
-                  const params = new URLSearchParams(hash);
-                  params.delete('members');
-                  const newHash = params.toString();
-                  if (newHash) {
-                    window.location.hash = '#' + newHash;
-                  } else {
-                    window.history.replaceState(null, null, window.location.pathname + window.location.search);
-                  }
-                }}
-              >
-                ×
-              </button>
+            {showRightColumn && (
+              <div className="membersense-right-column">
               
               {/* Validation message for narrow screens - positioned at top of right column */}
               {memberSenseProps.error && isNarrowScreen && (
@@ -1859,21 +1875,67 @@ function FeedPlayer({
               
               {/* Main MemberSense content */}
               <div className="membersense-overlay-content">
-                <MemberSense
-                  onValidToken={memberSenseProps.onValidToken}
-                  initialToken={memberSenseProps.initialToken}
-                  isLoading={memberSenseProps.isLoading}
-                  error={memberSenseProps.error}
-                  isLoggedIn={memberSenseProps.isLoggedIn}
-                  isLoggingOut={memberSenseProps.isLoggingOut}
-                  serverInfo={memberSenseProps.serverInfo}
-                  isFullScreen={false}
-                  useMockData={memberSenseProps.useMockData}
-                  onToggleMockData={memberSenseProps.onToggleMockData}
-                  handleViewChange={memberSenseProps.handleViewChange}
-                />
+                {/* Close button - positioned in upper right, always visible */}
+                <button 
+                  className={`close-overlay-btn ${isNarrowScreen ? 'narrow-close-btn' : ''}`}
+                  onClick={() => {
+                    // If Discord content is shown, clear it first, otherwise close entire overlay
+                    if (memberSenseProps.sidePanelView && memberSenseProps.setSidePanelView) {
+                      memberSenseProps.setSidePanelView(null);
+                    } else {
+                      setShowMemberSenseOverlay(false);
+                    }
+                  }}
+                >
+                  ×
+                </button>
+                
+                {/* Show Discord content in right column when sidePanelView is active */}
+                {memberSenseProps.sidePanelView === "Showcase" ? (
+                  <div className="discord-content-wrapper">
+                    <MemberShowcase 
+                      token={memberSenseProps.initialToken} 
+                      members={memberSenseProps.members || []} 
+                      isLoading={memberSenseProps.isLoading} 
+                      isFullScreen={false}
+                      onClose={() => {
+                        if (memberSenseProps.setSidePanelView) {
+                          memberSenseProps.setSidePanelView(null);
+                        }
+                      }}
+                    />
+                  </div>
+                ) : memberSenseProps.sidePanelView === "DiscordViewer" ? (
+                  <div className="discord-content-wrapper">
+                    <DiscordChannelViewer
+                      channels={memberSenseProps.channels || []}
+                      messages={memberSenseProps.messages || []}
+                      selectedChannel={memberSenseProps.selectedChannel}
+                      onChannelSelect={memberSenseProps.setSelectedChannel}
+                      isLoading={memberSenseProps.isLoading}
+                      isFullScreen={false}
+                    />
+                  </div>
+                ) : (
+                  <div className="member-sense-wrapper">
+                    <MemberSense
+                      onValidToken={memberSenseProps.onValidToken}
+                      initialToken={memberSenseProps.initialToken}
+                      isLoading={memberSenseProps.isLoading}
+                      error={memberSenseProps.error}
+                      isLoggedIn={memberSenseProps.isLoggedIn}
+                      isLoggingOut={memberSenseProps.isLoggingOut}
+                      serverInfo={memberSenseProps.serverInfo}
+                      isFullScreen={false}
+                      useMockData={memberSenseProps.useMockData}
+                      onToggleMockData={memberSenseProps.onToggleMockData}
+                      handleViewChange={memberSenseProps.handleViewChange}
+                    />
+                  </div>
+                )}
               </div>
             </div>
+            )}
           </div>
         )}
       </div>
@@ -1952,8 +2014,46 @@ function FeedPlayer({
               }-line`}
             ></i>
           </button>
+          
+          {/* Menu Options Button */}
+          <button
+            className="control-button menu-options"
+            onClick={() => setShowControlsMenu(!showControlsMenu)}
+            title="More Options"
+          >
+            <i className="ri-more-line"></i>
+          </button>
         </div>
       </div>
+      
+      {/* Controls Menu - positioned above controls in lower right */}
+      {showControlsMenu && (
+        <div className="feedplayer-controls-menu">
+          <ul className="controls-menu-list">
+            <li className="controls-menu-item" onClick={() => {
+              setShowControlsMenu(false);
+              if (handleMenuClick) handleMenuClick("feeds");
+            }}>
+              <i className="ri-list-unordered"></i>
+              <span>Choose Feeds</span>
+            </li>
+            <li className="controls-menu-item" onClick={() => {
+              setShowControlsMenu(false);
+              if (handleMenuClick) handleMenuClick("url");
+            }}>
+              <i className="ri-link"></i>
+              <span>Add URL</span>
+            </li>
+            <li className="controls-menu-item" onClick={() => {
+              setShowControlsMenu(false);
+              setShowMemberSenseOverlay(true);
+            }}>
+              <i className="ri-user-line"></i>
+              <span>MemberSense</span>
+            </li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

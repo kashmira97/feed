@@ -2,7 +2,7 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronLeft, ChevronRight, Mail, ExternalLink } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Mail, ExternalLink, X, Pause, Play } from "lucide-react";
 import "./MemberShowcase.scss";
 
 // Card component to display individual member information
@@ -27,13 +27,14 @@ const MemberCard = ({ member, openProfile }) => (
   </motion.div>
 );
 
-const MemberShowcase = ({ members, isFullScreen }) => {
+const MemberShowcase = ({ members, isFullScreen, onClose }) => {
   const [currentPage, setCurrentPage] = useState(0); // Manages pagination
   const [progress, setProgress] = useState(0); // Manages auto-progress indicator
   const [searchTerm, setSearchTerm] = useState(""); // Stores the current search term
   const [selectedMember, setSelectedMember] = useState(null); // Manages the selected member profile display
   const [isLoading, setIsLoading] = useState(true); // Indicates loading state for members
   const [gridDimensions, setGridDimensions] = useState({ columns: 3, rows: 3 }); // Grid dimensions based on screen size
+  const [isPaused, setIsPaused] = useState(false); // Manages auto-progression pause state
 
   // References for auto-progress interval and container for calculating dimensions
   const containerRef = useRef(null);
@@ -93,9 +94,9 @@ const MemberShowcase = ({ members, isFullScreen }) => {
     setProgress(0);
   }, [isFullScreen]);
 
-  // Manages auto-pagination with interval and resets if loading
+  // Manages auto-pagination with interval and resets if loading or paused
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !isPaused) {
       intervalRef.current = setInterval(() => {
         setProgress((prevProgress) => {
           if (prevProgress >= 100) {
@@ -115,7 +116,7 @@ const MemberShowcase = ({ members, isFullScreen }) => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [filteredMembers.length, gridDimensions, intervalDuration, isLoading]);
+  }, [filteredMembers.length, gridDimensions, intervalDuration, isLoading, isPaused]);
 
   // Handles search input changes and resets pagination
   const handleSearchChange = (event) => {
@@ -145,12 +146,22 @@ const MemberShowcase = ({ members, isFullScreen }) => {
   const openProfile = (member) => setSelectedMember(member);
   const closeProfile = () => setSelectedMember(null);
 
+  // Toggle pause state
+  const togglePause = () => setIsPaused(!isPaused);
+
   // Determines the members to display on the current page
   const startIndex = currentPage * (gridDimensions.columns * gridDimensions.rows);
   const displayedMembers = filteredMembers.slice(startIndex, startIndex + gridDimensions.columns * gridDimensions.rows);
 
   return (
     <div className={`member-showcase ${isFullScreen ? "fullscreen" : ""}`}>
+      {/* Close X button in upper right */}
+      {onClose && (
+        <button className="member-showcase-close-btn" onClick={onClose}>
+          <X size={18} />
+        </button>
+      )}
+      
       {/* Navigation bar with search functionality */}
       <nav className="app-nav">
         <div className="search-container">
@@ -222,6 +233,11 @@ const MemberShowcase = ({ members, isFullScreen }) => {
       <div className="progress-bar-container">
         <div className="progress-bar" style={{ width: `${progress}%` }} />
       </div>
+
+      {/* Pause/Play button in lower right */}
+      <button className="member-showcase-pause-btn" onClick={togglePause}>
+        {isPaused ? <Play size={18} /> : <Pause size={18} />}
+      </button>
 
       {/* Profile overlay for viewing selected member details */}
       <AnimatePresence>

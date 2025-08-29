@@ -448,6 +448,7 @@ function App() {
     if (view === "Showcase" || view === "DiscordViewer") {
       // Use unified Player for MemberSense features
       window.location.hash = '#members=discord';
+      setSidePanelView(view); // Set which Discord content to show in left panel
       
       // Load data if not already loaded
       if (sessionId && members.length === 0 && !useMockData) {
@@ -545,8 +546,21 @@ function App() {
                 serverInfo: serverInfo,
                 useMockData: useMockData,
                 onToggleMockData: (value) => setUseMockData(value),
-                handleViewChange: handleViewChange
+                handleViewChange: handleViewChange,
+                currentView: currentView,
+                sidePanelView: sidePanelView,
+                setSidePanelView: setSidePanelView,
+                members: members,
+                channels: channels,
+                messages: messages,
+                selectedChannel: selectedChannel,
+                setSelectedChannel: setSelectedChannel
               }}
+              // Menu props
+              isMenu={isMenu}
+              setIsMenu={setIsMenu}
+              handleMenuClick={handleMenuClick}
+              setCurrentView={setCurrentView}
               {...commonProps}
             />
           </div>
@@ -595,7 +609,7 @@ function App() {
   ];
 
   const getMenuStyles = () => {
-    if (currentView === "FeedPlayer") return { top: "30px", right: "30px" };
+    if (currentView === "FeedPlayer") return { bottom: "10px", right: "10px" };
     if (token) {
       if (currentView === "MemberSense") return { top: "50px", right: "50px" };
       if (currentView === "Showcase") return { top: "40px", right: "40px" };
@@ -668,18 +682,8 @@ function App() {
         ) : (
           <div className="nav-menu">
             <div className="VideoPlayer__toggleMenu" ref={menuRef}>
-              {!isMenu && (
-                <button
-                  className="popup-btn"
-                  onClick={handlePopupClick}
-                  title="Click to Toggle Options"
-                  style={getMenuStyles()}
-                >
-                  <MoreHorizontal size={24} />
-                </button>
-              )}
               {isMenu && (
-                <div className="menu-content">
+                <div className={`menu-content ${currentView === "FeedPlayer" ? "bottom-positioned" : ""}`}>
                   <ul className="menu-list">
                     {currentView === "FeedPlayer" && (
                       <>

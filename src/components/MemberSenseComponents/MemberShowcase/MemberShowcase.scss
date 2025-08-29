@@ -11,6 +11,7 @@
   height: 100%;
   max-height: 90vh; // Limit maximum height to 90% of viewport height
   width: 100%;
+  position: relative; // Enable absolute positioning for buttons
 
   &.fullscreen {
     max-width: none;
@@ -20,6 +21,58 @@
     margin: 0;
     border-radius: 0;
     padding: 20px;
+  }
+
+  // Close X button positioned in upper right
+  .member-showcase-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    color: #666;
+    font-size: 16px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 1);
+      color: #333;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // Pause/Play button positioned in lower right
+  .member-showcase-pause-btn {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    color: #666;
+    font-size: 16px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 1);
+      color: #333;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
   }
 
   .app-nav {
