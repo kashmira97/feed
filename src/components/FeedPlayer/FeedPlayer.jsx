@@ -122,6 +122,12 @@ function FeedPlayer({
   const pageDuration = 10; // Pages last 10 seconds
   const pageTimerRef = useRef(null); // Add page timer ref
 
+  // Function to handle feed item selection across all display modes
+  const handleFeedItemClick = (index) => {
+    setCurrentMediaIndex(index);
+    setCurrentDisplayMode("media");
+  };
+
   // Display mode definitions with icons
   const displayModes = [
     { key: "media", label: "Media View", icon: "ri-play-circle-line" },
@@ -1415,7 +1421,7 @@ function FeedPlayer({
                 </div>
                 <div className="columns-grid">
                   {selectedMediaList.slice(0, 6).map((item, index) => (
-                    <div key={index} className="column-item">
+                    <div key={index} className="column-item clickable-item" onClick={() => handleFeedItemClick(index)}>
                       <div className="column-thumbnail">
                         {isImageFile(item.url) && <img src={item.url} alt={item.title} />}
                         {isVideoFile(item.url) && (
@@ -1453,7 +1459,7 @@ function FeedPlayer({
                   </thead>
                   <tbody>
                     {selectedMediaList.slice(0, 8).map((item, index) => (
-                      <tr key={index}>
+                      <tr key={index} className="clickable-row" onClick={() => handleFeedItemClick(index)}>
                         <td>{index + 1}</td>
                         <td>{item.title || `Scene ${index + 1}`}</td>
                         <td>{isImageFile(item.url) ? "Image" : isVideoFile(item.url) ? "Video" : "Page"}</td>
@@ -1478,7 +1484,7 @@ function FeedPlayer({
                 </div>
                 <ul className="scene-list">
                   {selectedMediaList.map((item, index) => (
-                    <li key={index} className="scene-list-item">
+                    <li key={index} className="scene-list-item clickable-item" onClick={() => handleFeedItemClick(index)}>
                       <span className="scene-number">{index + 1}</span>
                       <span className="scene-title">{item.title || `Scene ${index + 1}`}</span>
                       <span className="scene-type">{isImageFile(item.url) ? "IMG" : isVideoFile(item.url) ? "VID" : "PAGE"}</span>
@@ -1501,10 +1507,7 @@ function FeedPlayer({
                 </div>
                 <div className="gallery-grid">
                   {selectedMediaList.slice(0, 12).map((item, index) => (
-                    <div key={index} className="gallery-item" onClick={() => {
-                      setCurrentMediaIndex(index);
-                      setCurrentDisplayMode("media");
-                    }}>
+                    <div key={index} className="gallery-item" onClick={() => handleFeedItemClick(index)}>
                       <div className="gallery-thumbnail">
                         {isImageFile(item.url) && <img src={item.url} alt={item.title} />}
                         {isVideoFile(item.url) && (
