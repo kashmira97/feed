@@ -1799,6 +1799,8 @@ function FeedPlayer({
                   onClick={() => {
                     setCurrentDisplayMode(mode.key);
                     setShowDisplayModesPopup(false);
+                    setShowControlsMenu(false);
+                    setIsDropdownActive(false);
                   }}
                   title={mode.label}
                 >
@@ -1998,7 +2000,11 @@ function FeedPlayer({
           {/* Display Modes Button */}
           <button
             className="control-button display-modes"
-            onClick={() => setShowDisplayModesPopup(!showDisplayModesPopup)}
+            onClick={() => {
+              setShowDisplayModesPopup(!showDisplayModesPopup)
+              setShowControlsMenu(false);
+              setIsDropdownActive(false);
+            }}
             title="Display Modes"
           >
             <i className="ri-layout-grid-line"></i>
