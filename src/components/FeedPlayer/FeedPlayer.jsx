@@ -49,23 +49,43 @@ function FeedPlayer({
   const getAssetPath = (assetPath) => {
     // Check if we're in dist context by looking at the feedplayer.js script tag
     const scripts = document.querySelectorAll('script[src*="feedplayer.js"]');
-    const isInDist = scripts.length > 0 && scripts[0].src.includes('./assets/feedplayer.js');
     
-    if (isInDist) {
-      // We're in dist context, remove 'src/' prefix if present
-      const cleanPath = assetPath.startsWith('src/') ? assetPath.substring(4) : assetPath;
-      return `./assets/${cleanPath}`;
-    } else {
-      // We're outside dist context, use original path logic
-      const currentPath = window.location.pathname;
-      let basePath;
-      if (currentPath.includes('/feed/')) {
-        basePath = currentPath.split('/feed/')[0] + '/feed';
-      } else {
-        basePath = '/feed';
+    if (scripts.length > 0) {
+      const scriptSrc = scripts[0].src;
+      
+      // Check if this is a built/dist version by looking for assets/feedplayer.js in the path
+      const isInDist = scriptSrc.includes('/assets/feedplayer.js');
+      
+      if (isInDist) {
+        // Extract the base path from the script URL
+        const scriptBasePath = scriptSrc.substring(0, scriptSrc.lastIndexOf('/assets/feedplayer.js'));
+        
+        // Remove 'src/' prefix and get just the path after src/
+        let cleanPath;
+        if (assetPath.startsWith('src/')) {
+          cleanPath = assetPath.substring(4); // Remove 'src/' -> 'assets/images/intro-landscape.jpg'
+        } else {
+          cleanPath = assetPath;
+        }
+        
+        // If cleanPath already starts with 'assets/', use it directly
+        // Otherwise, add 'assets/' prefix
+        const finalPath = cleanPath.startsWith('assets/') 
+          ? `${scriptBasePath}/${cleanPath}`
+          : `${scriptBasePath}/assets/${cleanPath}`;
+        return finalPath;
       }
-      return `${basePath}/${assetPath}`;
     }
+    
+    // Fallback: We're outside dist context, use original path logic
+    const currentPath = window.location.pathname;
+    let basePath;
+    if (currentPath.includes('/feed/')) {
+      basePath = currentPath.split('/feed/')[0] + '/feed';
+    } else {
+      basePath = '/feed';
+    }
+    return `${basePath}/${assetPath}`;
   };
   // The numbers here are the states to see in React Developer Tools
   const { mediaList, currentMedia, setCurrentMedia } = useContext(Context); // 0
