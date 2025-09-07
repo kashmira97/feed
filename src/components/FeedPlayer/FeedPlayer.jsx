@@ -746,8 +746,34 @@ function FeedPlayer({
         });
       }
       
+      // Special handling for USDA food APIs with enhanced error handling
+      const feedName = media.feed.trim().toLowerCase();
+      if (feedName === "food" || feedName === "usda") {
+        try {
+          const response = await axios.get(media.url, {
+            timeout: 10000, // 10 second timeout
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'FeedPlayer/1.0'
+            }
+          });
+          return processFoodApiResponse(response.data, feedName, media);
+        } catch (apiError) {
+          console.error(`${feedName} API error:`, apiError);
+          
+          // Create helpful error slide with fallback information
+          return [{
+            url: null,
+            text: `Error loading ${feedName} data: ${apiError.message}`,
+            title: `${media.title} - Temporarily Unavailable`,
+            type: 'error',
+            isError: true
+          }];
+        }
+      }
+      
       const response = await axios.get(media.url);
-      switch (media.feed.trim().toLowerCase()) {
+      switch (feedName) {
         case "seeclickfix-311":
           return response.data.issues.map((item) => ({
             url: item.media.image_full || item.media.representative_image_url,
@@ -902,6 +928,240 @@ function FeedPlayer({
 
   const isPageFile = (media) => {
     return media && media.type === 'page';
+  };
+
+  const isTextOnlyFeed = (media) => {
+    return media && ['food', 'usda'].includes(media.type);
+  };
+
+  // Process USDA Food API responses into standardized slide format
+  const processFoodApiResponse = (data, feedName, media) => {
+    console.log(`Processing ${feedName} API response:`, data);
+    
+    try {
+      switch (feedName) {
+        case "food": {
+          // USDA Food List API - returns array of food items
+          if (!data || !Array.isArray(data)) {
+            throw new Error("Invalid food API response format");
+          }
+          
+          return data.map((food, index) => {
+            const nutritionData = extractNutritionData(food);
+            
+            return {
+              url: null, // No images in USDA API
+              text: createNutritionLabel(food, nutritionData, "No ingredients listed"),
+              title: food.description || `Food Item ${index + 1}`,
+              type: 'food',
+              rawData: food
+            };
+          });
+        }
+        
+        case "usda": {
+          // USDA Single Food API - returns single food object
+          if (!data || typeof data !== 'object') {
+            throw new Error("Invalid USDA API response format");
+          }
+          
+          const nutritionData = extractNutritionData(data);
+          const ingredients = data.ingredients || "No ingredients listed";
+          
+          return [{
+            url: null, // No images in USDA API
+            text: createNutritionLabel(data, nutritionData, ingredients),
+            title: data.description || "USDA Food Item",
+            type: 'usda',
+            rawData: data
+          }];
+        }
+        
+        default:
+          throw new Error(`Unknown food feed type: ${feedName}`);
+      }
+    } catch (error) {
+      console.error(`Error processing ${feedName} API response:`, error);
+      return [{
+        url: null,
+        text: `Error processing ${feedName} data: ${error.message}`,
+        title: `Failed to load ${media.title}`,
+        isError: true,
+        type: 'error'
+      }];
+    }
+  };
+
+  // Extract nutritional information directly from API response
+  const extractNutritionData = (foodData) => {
+    // Use labelNutrients if available (USDA feed has this)
+    let labelNutrients = foodData.labelNutrients || {};
+    
+    // If no labelNutrients, create standardized format from foodNutrients array (Food feed)
+    if (!foodData.labelNutrients && foodData.foodNutrients && Array.isArray(foodData.foodNutrients)) {
+      labelNutrients = createStandardizedNutrients(foodData.foodNutrients);
+    }
+    
+    // Also get detailed nutrients for additional info
+    const detailedNutrients = {};
+    if (foodData.foodNutrients && Array.isArray(foodData.foodNutrients)) {
+      foodData.foodNutrients.forEach(nutrient => {
+        const name = nutrient.name || nutrient.nutrient?.name;
+        if (name) {
+          detailedNutrients[name] = {
+            value: nutrient.amount || 0,
+            unit: nutrient.unitName || nutrient.nutrient?.unitName || ''
+          };
+        }
+      });
+    }
+    
+    return { labelNutrients, detailedNutrients };
+  };
+
+  // Create standardized labelNutrients format from Food feed's foodNutrients array
+  const createStandardizedNutrients = (foodNutrients) => {
+    const standardized = {};
+    
+    // Map Food feed nutrient numbers to labelNutrients format
+    const nutrientMap = {
+      '208': { key: 'calories', transform: (val) => ({ value: Math.round(val) }) }, // Energy (KCAL)
+      '203': { key: 'protein', transform: (val) => ({ value: Math.round(val * 10) / 10 }) }, // Protein
+      '204': { key: 'fat', transform: (val) => ({ value: Math.round(val * 10) / 10 }) }, // Total lipid (fat)
+      '205': { key: 'carbohydrates', transform: (val) => ({ value: Math.round(val * 10) / 10 }) }, // Carbohydrate
+      '291': { key: 'fiber', transform: (val) => ({ value: Math.round(val * 10) / 10 }) }, // Fiber
+      '269': { key: 'sugars', transform: (val) => ({ value: Math.round(val * 10) / 10 }) }, // Total Sugars
+      '606': { key: 'saturatedFat', transform: (val) => ({ value: Math.round(val * 100) / 100 }) }, // Saturated Fat
+      '605': { key: 'transFat', transform: (val) => ({ value: Math.round(val * 100) / 100 }) }, // Trans Fat
+      '601': { key: 'cholesterol', transform: (val) => ({ value: Math.round(val) }) }, // Cholesterol
+      '307': { key: 'sodium', transform: (val) => ({ value: Math.round(val) }) }, // Sodium
+      '301': { key: 'calcium', transform: (val) => ({ value: Math.round(val) }) }, // Calcium
+      '303': { key: 'iron', transform: (val) => ({ value: Math.round(val * 10) / 10 }) } // Iron
+    };
+    
+    foodNutrients.forEach(nutrient => {
+      const number = nutrient.number;
+      const mapping = nutrientMap[number];
+      
+      if (mapping && nutrient.amount > 0) {
+        standardized[mapping.key] = mapping.transform(nutrient.amount);
+      }
+    });
+    
+    return standardized;
+  };
+
+  // Create FDA-style Nutrition Facts label using actual API data
+  const createNutritionLabel = (foodData, nutritionData, ingredients) => {
+    const { labelNutrients } = nutritionData;
+    const parts = [];
+    
+    // Nutrition Facts Header
+    parts.push("Nutrition Facts");
+    
+    // Product and serving info
+    const productInfo = [];
+    if (foodData.brandOwner) productInfo.push(foodData.brandOwner);
+    if (foodData.brandName) productInfo.push(foodData.brandName);
+    if (foodData.description) productInfo.push(foodData.description);
+    
+    if (productInfo.length > 0) {
+      parts.push(productInfo.join(' '));
+    }
+    
+    // Serving size (USDA feed has specific serving sizes, Food feed is per 100g)
+    if (foodData.servingSize && foodData.servingSizeUnit) {
+      parts.push(`Serving Size ${foodData.servingSize}${foodData.servingSizeUnit}`);
+      if (foodData.householdServingFullText) {
+        parts.push(`(${foodData.householdServingFullText})`);
+      }
+    } else {
+      // Food feed data is per 100g by default
+      parts.push("Serving Size 100g");
+      parts.push("(per 100 grams)");
+    }
+    
+    parts.push(""); // Separator
+    parts.push("Amount Per Serving");
+    parts.push(""); // Separator
+    
+    // Calories (prominent display)
+    if (labelNutrients.calories) {
+      parts.push(`Calories ${labelNutrients.calories.value}`);
+      parts.push(""); // Separator
+    }
+    
+    // % Daily Value header  
+    parts.push("% Daily Value*");
+    parts.push(""); // Separator
+    
+    // Nutrition facts in FDA order using actual values
+    const nutritionItems = [
+      { key: 'fat', label: 'Total Fat', unit: 'g', dv: 65 },
+      { key: 'saturatedFat', label: '  Saturated Fat', unit: 'g', dv: 20 },
+      { key: 'transFat', label: '  Trans Fat', unit: 'g', dv: null },
+      { key: 'cholesterol', label: 'Cholesterol', unit: 'mg', dv: 300 },
+      { key: 'sodium', label: 'Sodium', unit: 'mg', dv: 2300 },
+      { key: 'carbohydrates', label: 'Total Carbohydrate', unit: 'g', dv: 300 },
+      { key: 'fiber', label: '  Dietary Fiber', unit: 'g', dv: 25 },
+      { key: 'sugars', label: '  Total Sugars', unit: 'g', dv: null },
+      { key: 'protein', label: 'Protein', unit: 'g', dv: 50 },
+      { key: 'calcium', label: 'Calcium', unit: 'mg', dv: 1300 },
+      { key: 'iron', label: 'Iron', unit: 'mg', dv: 18 }
+    ];
+    
+    nutritionItems.forEach(item => {
+      const nutrientData = labelNutrients[item.key];
+      if (nutrientData && nutrientData.value !== undefined) {
+        const value = nutrientData.value;
+        
+        // Format nutrient name and value (left side)
+        const leftSide = `${item.label} ${value}${item.unit}`;
+        
+        // Calculate % Daily Value (right side)
+        let rightSide = '';
+        if (item.dv && value > 0) {
+          const percent = Math.round((value / item.dv) * 100);
+          rightSide = `${percent}%`;
+        }
+        
+        // Create properly formatted line - the CSS will handle the spacing
+        const line = rightSide ? `${leftSide}|${rightSide}` : leftSide;
+        parts.push(line);
+      }
+    });
+    
+    parts.push(""); // Separator
+    parts.push("*The % Daily Value (DV) tells you how much a");
+    parts.push("nutrient in a serving of food contributes to a");
+    parts.push("daily diet. 2,000 calories a day is used for");
+    parts.push("general nutrition advice.");
+    
+    // Ingredients section
+    if (ingredients && ingredients !== "No ingredients listed") {
+      parts.push(""); // Separator
+      parts.push("INGREDIENTS:");
+      
+      // Word wrap ingredients for better display
+      const maxLineLength = 45;
+      const words = ingredients.split(' ');
+      let currentLine = '';
+      
+      words.forEach(word => {
+        if (currentLine.length + word.length + 1 > maxLineLength) {
+          if (currentLine) parts.push(currentLine.trim());
+          currentLine = word + ' ';
+        } else {
+          currentLine += word + ' ';
+        }
+      });
+      
+      if (currentLine.trim()) {
+        parts.push(currentLine.trim());
+      }
+    }
+    
+    return parts.join('\n');
   };
 
   // Helper function to extract filename without extension and add spaces to camelCase
@@ -1550,6 +1810,47 @@ function FeedPlayer({
               pageContent={pageContent}
               isFullScreen={isFullScreen}
             />
+          ) : isTextOnlyFeed(currentMedia) ? (
+            <div className="FeedPlayer__text-only-slide">
+              <img
+                src={getAssetPath('src/assets/images/intro-landscape.jpg')}
+                alt="Food Background"
+                className="text-only-background"
+                style={{ 
+                  display: "block", 
+                  width: "100%", 
+                  height: "100%", 
+                  objectFit: "cover",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  opacity: 0.3 // Make background subtle so text is readable
+                }}
+                onError={(e) => {
+                  console.warn('Background image failed to load:', e.target.src);
+                }}
+              />
+              <div className="text-only-overlay">
+                <div className="text-only-content">
+                  <h2>{currentMedia.title}</h2>
+                  <div className="text-only-body">
+                    {currentMedia.text && currentMedia.text.split('\n').map((line, index) => {
+                      // Handle pipe-separated nutrient lines (nutrient|percentage)
+                      if (line.includes('|')) {
+                        const [nutrient, percent] = line.split('|');
+                        return (
+                          <p key={index} className="nutrient-line">
+                            <span className="nutrient-name">{nutrient}</span>
+                            <span className="nutrient-percent">{percent}</span>
+                          </p>
+                        );
+                      }
+                      return <p key={index}>{line}</p>;
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : currentMedia.url && isImageFile(currentMedia.url) ? (
             <img
               ref={imageRef}
