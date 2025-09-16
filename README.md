@@ -60,12 +60,7 @@ The Feed-Player interface that is both visually appealing and intuitive to use. 
 
 ## Getting Started
 
-To contribute, fork these 3 repos (and sync often):
-[localsite](https://github.com/ModelEarth/localsite)
-[feed](https://github.com/ModelEarth/feed)
-[swiper](https://github.com/ModelEarth/swiper)
-
-Then clone into your website root using Github Desktop.
+To contribute, fork our [webroot](https://model.earth/webroot/) and sync often by runnning "pull" in Claude Code CLI.
 
 If you're NOT making code updates, you can clone without forking using these commands:
 
