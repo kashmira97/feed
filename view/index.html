@@ -297,8 +297,12 @@ function displayFeed() {
 	var longitude = localStorage.longitude ? localStorage.longitude : -72.925;
 
 	if (hash.feed == "bsky") {
+		alert("bsky")
+		url = "https://bsky.app/profile/did:plc:ileopdnhib52emw3veem5zxk/rss";
+		/*
 		//Multiple api urls with | as delimiter
 		url = "https://bsky.app/profile/did:plc:ileopdnhib52emw3veem5zxk/rss|https://bsky.app/profile/did:plc:c7cowkyakvxksimml3k2xs5f/rss|https://bsky.app/profile/did:plc:xenbfv5wf6xharo6epphpyek/rss|https://bsky.app/profile/did:plc:ernqnkihzlup6rjajq55newo/rss";
+		*/
 		activeFeed.useCORS = true;
 	} else if (hash.feed == "foryou") {
 
