@@ -842,42 +842,126 @@ function FeedPlayer({
                   // Use feedFields if available to determine which columns to display
                   if (media.feedFields && media.feedFields.trim()) {
                     const fieldNames = media.feedFields.split(',').map(field => field.trim());
-                    mediaItems = results.data
-                      .filter((item) => Object.values(item).some(value => value && value.trim())) // Filter out completely empty rows
-                      .map((item, index) => {
+                    const parsedItems = [];
+
+                    results.data
+                      .filter((item) =>
+                        Object.values(item).some((value) =>
+                          value !== undefined && value !== null && String(value).trim() !== ''
+                        )
+                      ) // Filter out completely empty rows
+                      .forEach((item, index) => {
                         // Create a display object using the specified fields
                         const displayData = {};
                         fieldNames.forEach(field => {
-                          if (item[field]) {
-                            displayData[field] = item[field];
+                          const value = item[field];
+                          if (value !== undefined && value !== null && String(value).trim() !== '') {
+                            displayData[field] = String(value);
                           }
                         });
-                        
-                        // Only include items with valid image URLs
+
+                        // Fallback to all item fields (minus media keys) when feedFields miss
+                        const fallbackData = Object.keys(displayData).length
+                          ? displayData
+                          : Object.fromEntries(
+                              Object.entries(item)
+                                .filter(([key, value]) =>
+                                  key !== 'url' &&
+                                  key !== 'hdurl' &&
+                                  value !== undefined &&
+                                  value !== null &&
+                                  String(value).trim() !== ''
+                                )
+                                .map(([key, value]) => [key, String(value)])
+                            );
+
+                        const title = item.Name || item.title || item[fieldNames[0]] || item.ID || `Item ${index + 1}`;
+                        const entries = Object.entries(fallbackData);
                         const imageUrl = item.url || item.hdurl;
-                        if (!imageUrl || !imageUrl.startsWith('http')) {
-                          return null; // Skip invalid entries
+
+                        if (imageUrl && imageUrl.startsWith('http')) {
+                          parsedItems.push({
+                            url: imageUrl,
+                            text: entries.length
+                              ? entries.map(([key, value]) => `${key}: ${value}`).join(', ')
+                              : item.explanation || item.description || "No description available",
+                            title,
+                            rawData: item,
+                            displayFields: fallbackData
+                          });
+                        } else if (entries.length) {
+                          parsedItems.push({
+                            url: null,
+                            text: entries.map(([key, value]) => `${key}: ${value}`).join('\n'),
+                            title,
+                            type: 'text',
+                            rawData: item,
+                            displayFields: fallbackData
+                          });
                         }
-                        
-                        return {
-                          url: imageUrl,
-                          text: Object.entries(displayData).map(([key, value]) => `${key}: ${value}`).join(', ') || "No data available",
-                          title: item.Name || item.title || item[fieldNames[0]] || `Item ${index + 1}`,
-                          rawData: item, // Include raw data for potential future use
-                          displayFields: displayData
-                        };
-                      }).filter(item => item !== null); // Remove invalid entries
+                      });
+
+                    mediaItems = parsedItems;
                   } else {
                     // Fallback to standard media format
                     mediaItems = results.data
-                      .filter((item) => item.url || item.hdurl) // Filter out empty rows
-                      .map((item) => ({
-                        url: item.hdurl || item.url,
-                        text: item.explanation || item.description || "No description available",
-                        title: item.title || "No title available",
-                      }));
+                      .filter((item) =>
+                        Object.values(item || {}).some((value) =>
+                          value !== undefined && value !== null && String(value).trim() !== ''
+                        )
+                      ) // Filter out entirely empty rows
+                      .map((item, index) => {
+                        const displayData = Object.fromEntries(
+                          Object.entries(item || {})
+                            .filter(([key, value]) =>
+                              key !== 'url' &&
+                              key !== 'hdurl' &&
+                              value !== undefined &&
+                              value !== null &&
+                              String(value).trim() !== ''
+                            )
+                            .map(([key, value]) => [key, String(value)])
+                        );
+
+                        const imageUrl = item.hdurl || item.url;
+
+                        if (imageUrl && imageUrl.startsWith('http')) {
+                          return {
+                            url: imageUrl,
+                            text: Object.entries(displayData).map(([key, value]) => `${key}: ${value}`).join(', ') || item.explanation || item.description || "No description available",
+                            title: item.title || item.Name || `Item ${index + 1}`,
+                            rawData: item,
+                            displayFields: displayData
+                          };
+                        }
+
+                        const entries = Object.entries(displayData);
+                        if (!entries.length) return null;
+
+                        return {
+                          url: null,
+                          text: entries.map(([key, value]) => `${key}: ${value}`).join('\n'),
+                          title: item.title || item.Name || item.ID || `Item ${index + 1}`,
+                          type: 'text',
+                          rawData: item,
+                          displayFields: displayData
+                        };
+                      })
+                      .filter(Boolean);
                   }
                   
+                  if (!mediaItems || mediaItems.length === 0) {
+                    mediaItems = [
+                      {
+                        url: null,
+                        text: `No data available for ${media.title || media.feed}`,
+                        title: media.title || media.feed || 'No data',
+                        type: 'error',
+                        isError: true,
+                      },
+                    ];
+                  }
+
                   resolve(mediaItems);
                 },
                 error: (error) => {
@@ -931,7 +1015,7 @@ function FeedPlayer({
   };
 
   const isTextOnlyFeed = (media) => {
-    return media && ['food', 'usda'].includes(media.type);
+    return media && ['food', 'usda', 'text'].includes(media.type);
   };
 
   // Process USDA Food API responses into standardized slide format
