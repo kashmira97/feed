@@ -515,8 +515,18 @@ function FeedPlayer({
         );
 
         if (selectedFeed) {
+          // Check if search/cat params changed for products-* feeds
+          const feedName = feed.trim().toLowerCase();
+          const isProductsList = feedName.startsWith('products-');
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const currentSearch = hashParams.get('search') || '';
+          const currentCat = hashParams.get('cat') || '';
+          
+          // Force reload if products list and search/cat params exist (filters need fresh data)
+          const shouldReload = isProductsList && (currentSearch || currentCat);
+          
           // If the feed is not loaded, load it
-          if (!listofMedia[selectedFeed.title]) {
+          if (!listofMedia[selectedFeed.title] || shouldReload) {
             loadFeed(selectedFeed, listofMedia).then(() => {
               const selectedMedia = listofMedia[selectedFeed.title];
               if (selectedMedia && selectedMedia.length > 0) {
