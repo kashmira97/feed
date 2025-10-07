@@ -515,8 +515,18 @@ function FeedPlayer({
         );
 
         if (selectedFeed) {
+          // Check if search/cat params changed for products-* feeds
+          const feedName = feed.trim().toLowerCase();
+          const isProductsList = feedName.startsWith('products-');
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const currentSearch = hashParams.get('search') || '';
+          const currentCat = hashParams.get('cat') || '';
+          
+          // Force reload if products list and search/cat params exist (filters need fresh data)
+          const shouldReload = isProductsList && (currentSearch || currentCat);
+          
           // If the feed is not loaded, load it
-          if (!listofMedia[selectedFeed.title]) {
+          if (!listofMedia[selectedFeed.title] || shouldReload) {
             loadFeed(selectedFeed, listofMedia).then(() => {
               const selectedMedia = listofMedia[selectedFeed.title];
               if (selectedMedia && selectedMedia.length > 0) {
@@ -838,6 +848,10 @@ function FeedPlayer({
                 header: true,
                 complete: (results) => {
                   let mediaItems = [];
+                  const isProductsList = feedName.startsWith('products-');
+                  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                  const searchParam = (hashParams.get('search') || '').toLowerCase();
+                  const catParam = (hashParams.get('cat') || '').toLowerCase();
                   
                   // Use feedFields if available to determine which columns to display
                   if (media.feedFields && media.feedFields.trim()) {
@@ -948,6 +962,23 @@ function FeedPlayer({
                         };
                       })
                       .filter(Boolean);
+                  }
+                  
+                  // Optional filtering for products lists via URL params: search and cat
+                  if (isProductsList && (searchParam || catParam)) {
+                    mediaItems = mediaItems.filter((m) => {
+                      if (!m || !m.rawData) return false;
+                      const values = Object.values(m.rawData || {}).map(v => String(v || '').toLowerCase());
+                      const title = String(m.title || '').toLowerCase();
+                      const text = String(m.text || '').toLowerCase();
+                      const categoryValue = (() => {
+                        const rd = m.rawData || {};
+                        return (rd.category || rd.Category || rd.cat || rd.Cat || rd.sector || rd.Sector || '').toString().toLowerCase();
+                      })();
+                      const searchOk = searchParam ? (title.includes(searchParam) || text.includes(searchParam) || values.some(v => v.includes(searchParam))) : true;
+                      const catOk = catParam ? (categoryValue.includes(catParam)) : true;
+                      return searchOk && catOk;
+                    });
                   }
                   
                   if (!mediaItems || mediaItems.length === 0) {
