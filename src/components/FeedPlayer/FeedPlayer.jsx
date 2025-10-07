@@ -285,6 +285,7 @@ function FeedPlayer({
       const cache = getPlayerHashCache();
       cache[listName] = {
         ...listStatus,
+        list: listStatus.list || listName,
         lastUpdated: new Date().toISOString()
       };
       localStorage.setItem('playerHashCache', JSON.stringify(cache));
@@ -296,7 +297,12 @@ function FeedPlayer({
 
   const getListStatusFromCache = (listName) => {
     const cache = getPlayerHashCache();
-    return cache[listName] || null;
+    const status = cache[listName];
+    if (!status) return null;
+    return {
+      ...status,
+      list: status.list || listName
+    };
   };
 
   const showSceneIndicatorTemporarily = (scene) => {
@@ -317,15 +323,15 @@ function FeedPlayer({
     setSceneDisplayTimeout(timeout);
   };
 
-  const updateURLHash = (feed, scene) => {
+  const updateURLHash = (listName, scene) => {
     if (playerHashFromCache) {
       // Use cache instead of updating URL hash
       const listStatus = {
         scene: scene,
-        feed: feed,
+        list: listName,
         timestamp: Date.now()
       };
-      setPlayerHashCache(feed, listStatus);
+      setPlayerHashCache(listName, listStatus);
       
       // Show scene indicator
       showSceneIndicatorTemporarily(scene);
@@ -341,14 +347,14 @@ function FeedPlayer({
       });
       
       // Only update the list parameter in the URL, keep scene out of URL
-      let hash = `#list=${encodeURIComponent(feed)}`;
+      let hash = `#list=${encodeURIComponent(listName)}`;
       if (otherParams.toString()) {
         hash += `&${otherParams.toString()}`;
       }
       
       // Only update hash if the list has actually changed
       const currentList = existingParams.get("list");
-      if (currentList !== feed) {
+      if (currentList !== listName) {
         window.location.hash = hash;
       }
       
@@ -367,7 +373,7 @@ function FeedPlayer({
       }
     });
 
-    let hash = `#list=${encodeURIComponent(feed)}&scene=${scene + 1}`; // scene is 1-based in the URL
+    let hash = `#list=${encodeURIComponent(listName)}&scene=${scene + 1}`; // scene is 1-based in the URL
     if (otherParams.toString()) {
       hash += `&${otherParams.toString()}`;
     }
@@ -377,15 +383,15 @@ function FeedPlayer({
   const parseHash = () => {
     const hash = window.location.hash.substring(1); // Remove the leading '#'
     const params = new URLSearchParams(hash);
-    const feed = params.get("list") || "";
+    const listName = params.get("list") || "";
     
-    if (playerHashFromCache && feed) {
+    if (playerHashFromCache && listName) {
       // Try to get scene from cache first
-      const cachedStatus = getListStatusFromCache(feed);
+      const cachedStatus = getListStatusFromCache(listName);
       if (cachedStatus && typeof cachedStatus.scene === 'number') {
-        console.log(`%c✅ Restored scene ${cachedStatus.scene} for list '${feed}' from cache`, 'color: green; font-weight: bold');
+        console.log(`%c✅ Restored scene ${cachedStatus.scene} for list '${listName}' from cache`, 'color: green; font-weight: bold');
         return {
-          feed: feed,
+          list: listName,
           scene: cachedStatus.scene,
           fromCache: true
         };
@@ -394,7 +400,7 @@ function FeedPlayer({
     
     // Fallback to URL-based scene or default to 0
     return {
-      feed: feed,
+      list: listName,
       scene: parseInt(params.get("scene") - 1, 10) || 0, // scene is 1-based in the URL, so we subtract 1 to make it 0-based
       fromCache: false
     };
@@ -402,7 +408,7 @@ function FeedPlayer({
 
   useEffect(() => {
     if (currentMedia && selectedMediaList.length > 0)
-      updateURLHash(mediaList[index].feed, currentMediaIndex);
+      updateURLHash(mediaList[index].list, currentMediaIndex);
   }, [
     currentMediaIndex,
     currentMedia,
@@ -412,11 +418,11 @@ function FeedPlayer({
   ]);
 
   useEffect(() => {
-    const { feed } = parseHash();
+    const { list: hashList } = parseHash();
 
-    if (feed) {
+    if (hashList) {
       const selectedFeed = mediaList.find(
-        (media) => media.feed.trim().toLowerCase() === feed.toLowerCase()
+        (media) => media.list.trim().toLowerCase() === hashList.toLowerCase()
       );
       if (selectedFeed) setIndex(mediaList.indexOf(selectedFeed)); // Update dropdown selection
     }
@@ -445,7 +451,7 @@ function FeedPlayer({
       setIsLoading(true);
       const templistofMedia = {};
       const swiperFeed = mediaList.find(
-        (media) => media.feed.trim().toLowerCase() === "swiper"
+        (media) => media.list.trim().toLowerCase() === "swiper"
       );
       if (swiperFeed) {
         await loadFeed(swiperFeed, templistofMedia);
@@ -464,7 +470,7 @@ function FeedPlayer({
       setIsLoading(true);
       const templistofMedia = {};
       const linkedVideoFeed = mediaList.find(
-        (media) => media.feed.trim().toLowerCase() === "linkedvideo"
+        (media) => media.list.trim().toLowerCase() === "linkedvideo"
       );
       if (linkedVideoFeed) {
         await loadFeed(linkedVideoFeed, templistofMedia);
@@ -482,11 +488,11 @@ function FeedPlayer({
   }, [videoData]);
 
   useEffect(() => {
-    const { feed, scene } = parseHash();
+    const { list: hashList, scene } = parseHash();
 
-    if (feed && scene >= 0) {
+    if (hashList && scene >= 0) {
       const selectedFeed = mediaList.find(
-        (media) => media.feed.trim().toLowerCase() === feed.toLowerCase()
+        (media) => media.list.trim().toLowerCase() === hashList.toLowerCase()
       );
 
       if (selectedFeed) {
@@ -497,7 +503,7 @@ function FeedPlayer({
             setSelectedMediaList(selectedMedia);
             setCurrentMedia(selectedMedia[scene]);
             setCurrentMediaIndex(scene);
-            console.log(`%c✅ Successfully loaded feed '${selectedFeed.feed}' with ${selectedMedia.length} items from media list processing`, 'color: green; font-weight: bold');
+            console.log(`%c✅ Successfully loaded list '${selectedFeed.list}' with ${selectedMedia.length} items from media list processing`, 'color: green; font-weight: bold');
           }
         });
       }
@@ -506,18 +512,18 @@ function FeedPlayer({
 
   useEffect(() => {
     const handleHashChange = () => {
-      const { feed, scene } = parseHash();
+      const { list: hashList, scene } = parseHash();
 
-      if (feed) {
+      if (hashList) {
         // Find the feed in mediaList
         const selectedFeed = mediaList.find(
-          (media) => media.feed.trim().toLowerCase() === feed.toLowerCase()
+          (media) => media.list.trim().toLowerCase() === hashList.toLowerCase()
         );
 
         if (selectedFeed) {
           // Check if search/cat params changed for products-* feeds
-          const feedName = feed.trim().toLowerCase();
-          const isProductsList = feedName.startsWith('products-');
+          const listSlug = hashList.trim().toLowerCase();
+          const isProductsList = listSlug.startsWith('products-');
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const currentSearch = hashParams.get('search') || '';
           const currentCat = hashParams.get('cat') || '';
@@ -535,10 +541,10 @@ function FeedPlayer({
                   setSelectedMediaList(selectedMedia);
                   setCurrentMedia(selectedMedia[scene]);
                   setCurrentMediaIndex(scene);
-                  console.log(`%c✅ Successfully loaded feed '${selectedFeed.feed}' with ${selectedMedia.length} items`, 'color: green; font-weight: bold');
+                  console.log(`%c✅ Successfully loaded list '${selectedFeed.list}' with ${selectedMedia.length} items`, 'color: green; font-weight: bold');
                 } else {
                   console.warn(
-                    `Invalid scene index ${scene + 1} in URL hash for feed '${selectedFeed.feed}'. Feed has ${selectedMedia.length} items.`
+                    `Invalid scene index ${scene + 1} in URL hash for list '${selectedFeed.list}'. List has ${selectedMedia.length} items.`
                   );
                   // Load first item as fallback
                   setIndex(mediaList.indexOf(selectedFeed));
@@ -548,7 +554,7 @@ function FeedPlayer({
                 }
               } else {
                 console.warn(
-                  `Feed '${selectedFeed.feed}' loaded but contains no records or data.`
+                  `List '${selectedFeed.list}' loaded but contains no records or data.`
                 );
               }
             });
@@ -561,10 +567,10 @@ function FeedPlayer({
                 setSelectedMediaList(selectedMedia);
                 setCurrentMedia(selectedMedia[scene]);
                 setCurrentMediaIndex(scene);
-                console.log(`%c✅ Successfully loaded feed '${selectedFeed.feed}' with ${selectedMedia.length} items (already cached)`, 'color: green; font-weight: bold');
+                console.log(`%c✅ Successfully loaded list '${selectedFeed.list}' with ${selectedMedia.length} items (already cached)`, 'color: green; font-weight: bold');
               } else {
                 console.warn(
-                  `Invalid scene index ${scene + 1} in URL hash for feed '${selectedFeed.feed}'. Feed has ${selectedMedia.length} items.`
+                  `Invalid scene index ${scene + 1} in URL hash for list '${selectedFeed.list}'. List has ${selectedMedia.length} items.`
                 );
                 // Load first item as fallback
                 setIndex(mediaList.indexOf(selectedFeed));
@@ -574,7 +580,7 @@ function FeedPlayer({
               }
             } else {
               console.warn(
-                `Feed '${selectedFeed.feed}' is loaded but contains no records or data.`
+                `List '${selectedFeed.list}' is loaded but contains no records or data.`
               );
             }
           }
@@ -600,10 +606,10 @@ function FeedPlayer({
   }, [mediaList]);
 
   useEffect(() => {
-    const { feed } = parseHash();
-    if (feed) {
+    const { list: hashList } = parseHash();
+    if (hashList) {
       const selectedFeed = mediaList.find(
-        (media) => media.feed.trim().toLowerCase() === feed.toLowerCase()
+        (media) => media.list.trim().toLowerCase() === hashList.toLowerCase()
       );
       if (selectedFeed) setIndex(mediaList.indexOf(selectedFeed)); // Update dropdown selection
     }
@@ -614,10 +620,10 @@ function FeedPlayer({
     const templistofMedia = {};
 
     // Try to load the first available feed from the mediaList
-    let defaultFeed = null;
+    let defaultList = null;
     if (mediaList && mediaList.length > 0) {
       // Get the first feed that has a URL and is not broken
-      defaultFeed = mediaList.find((media) => 
+      defaultList = mediaList.find((media) => 
         media.url && 
         media.url.trim() && 
         media.url.startsWith('http') // Ensure it's a valid HTTP URL
@@ -625,29 +631,29 @@ function FeedPlayer({
     }
 
     // Fallback to NASA feed if no other feed is available
-    if (!defaultFeed) {
-      defaultFeed = mediaList.find(
-        (media) => media.feed.trim().toLowerCase() === "nasa"
+    if (!defaultList) {
+      defaultList = mediaList.find(
+        (media) => media.list.trim().toLowerCase() === "nasa"
       );
     }
 
-    if (defaultFeed) {
+    if (defaultList) {
       try {
         // Load the default feed
-        await loadFeed(defaultFeed, templistofMedia);
-        setLoadedFeeds([defaultFeed.feed.trim().toLowerCase()]);
+        await loadFeed(defaultList, templistofMedia);
+        setLoadedFeeds([defaultList.list.trim().toLowerCase()]);
 
         // Set initial media
         setListofMedia(templistofMedia);
-        setSelectedMediaList(templistofMedia[defaultFeed.title]);
-        setCurrentMedia(templistofMedia[defaultFeed.title][0]);
-        console.log(`%c✅ Successfully loaded default feed '${defaultFeed.feed}' with ${templistofMedia[defaultFeed.title]?.length || 0} items`, 'color: green; font-weight: bold');
+        setSelectedMediaList(templistofMedia[defaultList.title]);
+        setCurrentMedia(templistofMedia[defaultList.title][0]);
+        console.log(`%c✅ Successfully loaded default list '${defaultList.list}' with ${templistofMedia[defaultList.title]?.length || 0} items`, 'color: green; font-weight: bold');
       } catch (error) {
         console.error("Failed to load default feed:", error);
         // If default feed fails and it wasn't NASA, try NASA as fallback
-        if (defaultFeed.feed.trim().toLowerCase() !== "nasa") {
+        if (defaultList.list.trim().toLowerCase() !== "nasa") {
           const nasaFeed = mediaList.find(
-            (media) => media.feed.trim().toLowerCase() === "nasa"
+            (media) => media.list.trim().toLowerCase() === "nasa"
           );
           if (nasaFeed) {
             try {
@@ -656,7 +662,7 @@ function FeedPlayer({
               setListofMedia(templistofMedia);
               setSelectedMediaList(templistofMedia[nasaFeed.title]);
               setCurrentMedia(templistofMedia[nasaFeed.title][0]);
-              console.log(`%c✅ Successfully loaded NASA fallback feed with ${templistofMedia[nasaFeed.title]?.length || 0} items`, 'color: green; font-weight: bold');
+              console.log(`%c✅ Successfully loaded NASA fallback list with ${templistofMedia[nasaFeed.title]?.length || 0} items`, 'color: green; font-weight: bold');
             } catch (nasaError) {
               console.error("NASA fallback also failed:", nasaError);
             }
@@ -682,7 +688,7 @@ function FeedPlayer({
       templistofMedia[media.title] = Array.isArray(mediaItems)
         ? mediaItems
         : [mediaItems];
-      setLoadedFeeds((prev) => [...prev, media.feed.trim().toLowerCase()]);
+      setLoadedFeeds((prev) => [...prev, media.list.trim().toLowerCase()]);
       setListofMedia((prev) => ({
         ...prev,
         [media.title]: templistofMedia[media.title],
@@ -696,8 +702,8 @@ function FeedPlayer({
 
   const fetchMediaFromAPI = async (media) => {
     try {
-      setActiveFeed(media.feed.trim().toLowerCase());
-      if (media.feed.trim().toLowerCase() === "swiper" && media.url) {
+      setActiveFeed(media.list.trim().toLowerCase());
+      if (media.list.trim().toLowerCase() === "swiper" && media.url) {
         if (!swiperData || !swiperData.url) {
           return {
             url: null,
@@ -712,7 +718,7 @@ function FeedPlayer({
           title: swiperData.title,
         };
       }
-      if (media.feed.trim().toLowerCase() === "linkedvideo") {
+      if (media.list.trim().toLowerCase() === "linkedvideo") {
         if (!videoData) {
           return {
             url: null,
@@ -729,7 +735,7 @@ function FeedPlayer({
       }
       
       // Special handling for cities feed - load from local CSV
-      if (media.feed.trim().toLowerCase() === "cities") {
+      if (media.list.trim().toLowerCase() === "cities") {
         const citiesCsvPath = getCitiesCsvPath();
         const citiesResponse = await axios.get(citiesCsvPath);
         
@@ -757,8 +763,8 @@ function FeedPlayer({
       }
       
       // Special handling for USDA food APIs with enhanced error handling
-      const feedName = media.feed.trim().toLowerCase();
-      if (feedName === "food" || feedName === "usda") {
+      const listSlug = media.list.trim().toLowerCase();
+      if (listSlug === "food" || listSlug === "usda") {
         try {
           const response = await axios.get(media.url, {
             timeout: 10000, // 10 second timeout
@@ -767,14 +773,14 @@ function FeedPlayer({
               'User-Agent': 'FeedPlayer/1.0'
             }
           });
-          return processFoodApiResponse(response.data, feedName, media);
+          return processFoodApiResponse(response.data, listSlug, media);
         } catch (apiError) {
-          console.error(`${feedName} API error:`, apiError);
+          console.error(`${listSlug} API error:`, apiError);
           
           // Create helpful error slide with fallback information
           return [{
             url: null,
-            text: `Error loading ${feedName} data: ${apiError.message}`,
+            text: `Error loading ${listSlug} data: ${apiError.message}`,
             title: `${media.title} - Temporarily Unavailable`,
             type: 'error',
             isError: true
@@ -783,7 +789,7 @@ function FeedPlayer({
       }
       
       const response = await axios.get(media.url);
-      switch (feedName) {
+      switch (listSlug) {
         case "seeclickfix-311":
           return response.data.issues.map((item) => ({
             url: item.media.image_full || item.media.representative_image_url,
@@ -810,7 +816,7 @@ function FeedPlayer({
           const repo = "requests";
           const branch = "main";
           const repoFeed = mediaList.find(
-            (media) => media.feed.trim() === "repo"
+            (media) => media.list.trim() === "repo"
           );
           const responseRepo = await axios.get(`${repoFeed.url}`);
           return responseRepo.data.tree
@@ -848,7 +854,7 @@ function FeedPlayer({
                 header: true,
                 complete: (results) => {
                   let mediaItems = [];
-                  const isProductsList = feedName.startsWith('products-');
+                  const isProductsList = listSlug.startsWith('products-');
                   const hashParams = new URLSearchParams(window.location.hash.substring(1));
                   const searchParam = (hashParams.get('search') || '').toLowerCase();
                   const catParam = (hashParams.get('cat') || '').toLowerCase();
@@ -985,8 +991,8 @@ function FeedPlayer({
                     mediaItems = [
                       {
                         url: null,
-                        text: `No data available for ${media.title || media.feed}`,
-                        title: media.title || media.feed || 'No data',
+                        text: `No data available for ${media.title || media.list}`,
+                        title: media.title || media.list || 'No data',
                         type: 'error',
                         isError: true,
                       },
@@ -1050,11 +1056,11 @@ function FeedPlayer({
   };
 
   // Process USDA Food API responses into standardized slide format
-  const processFoodApiResponse = (data, feedName, media) => {
-    console.log(`Processing ${feedName} API response:`, data);
+  const processFoodApiResponse = (data, listSlug, media) => {
+    console.log(`Processing ${listSlug} API response:`, data);
     
     try {
-      switch (feedName) {
+      switch (listSlug) {
         case "food": {
           // USDA Food List API - returns array of food items
           if (!data || !Array.isArray(data)) {
@@ -1093,13 +1099,13 @@ function FeedPlayer({
         }
         
         default:
-          throw new Error(`Unknown food feed type: ${feedName}`);
+          throw new Error(`Unknown food list type: ${listSlug}`);
       }
     } catch (error) {
-      console.error(`Error processing ${feedName} API response:`, error);
+      console.error(`Error processing ${listSlug} API response:`, error);
       return [{
         url: null,
-        text: `Error processing ${feedName} data: ${error.message}`,
+        text: `Error processing ${listSlug} data: ${error.message}`,
         title: `Failed to load ${media.title}`,
         isError: true,
         type: 'error'
@@ -1681,8 +1687,8 @@ function FeedPlayer({
     if (mediaList && mediaList.length > 0) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       if (!hashParams.has("list")) {
-        const defaultFeed = mediaList[0]?.feed || "seeclickfix-311";
-        hashParams.set("list", defaultFeed);
+        const defaultListName = mediaList[0]?.list || "seeclickfix-311";
+        hashParams.set("list", defaultListName);
         window.location.hash = `#${hashParams.toString()}`;
       }
     }
@@ -2167,7 +2173,7 @@ function FeedPlayer({
                   <li
                     key={idx}
                     className={`${currentMediaIndex === idx ? "active" : ""} ${
-                      loadedFeeds.includes(media.feed.trim().toLowerCase())
+                      loadedFeeds.includes(media.list.trim().toLowerCase())
                         ? ""
                         : "loading"
                     }`}
@@ -2186,14 +2192,14 @@ function FeedPlayer({
                       };
                       
                       if (
-                        loadedFeeds.includes(media.feed.trim().toLowerCase())
+                        loadedFeeds.includes(media.list.trim().toLowerCase())
                       ) {
                         setIndex(idx);
                         setIsDropdownActive(false);
                         setCurrentMediaIndex(0);
                         setSelectedMediaList(listofMedia[media.title]);
                         setCurrentMedia(listofMedia[media.title][0]);
-                        updateURLHash(media.feed, 0); // Update hash
+                        updateURLHash(media.list, 0); // Update hash
                         loadMediaAndShowFirstFrame(listofMedia[media.title], listofMedia[media.title][0]);
                       } else {
                         loadFeed(media, listofMedia).then(() => {
@@ -2202,14 +2208,14 @@ function FeedPlayer({
                           setCurrentMediaIndex(0);
                           setSelectedMediaList(listofMedia[media.title]);
                           setCurrentMedia(listofMedia[media.title][0]);
-                          updateURLHash(media.feed, 0); // Update hash after loading
+                          updateURLHash(media.list, 0); // Update hash after loading
                           loadMediaAndShowFirstFrame(listofMedia[media.title], listofMedia[media.title][0]);
-                          console.log(`%c✅ Successfully loaded feed '${media.feed}' from dropdown with ${listofMedia[media.title]?.length || 0} items`, 'color: green; font-weight: bold');
+                          console.log(`%c✅ Successfully loaded list '${media.list}' from dropdown with ${listofMedia[media.title]?.length || 0} items`, 'color: green; font-weight: bold');
                         });
                       }
                     }}
                   >
-                    {media.title || media.feed}
+                    {media.title || media.list}
                   </li>
                 ))}
               </ul>
