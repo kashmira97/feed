@@ -51,7 +51,7 @@ export default function ContextProvider({ children }) {
             const feedMedia = results.data
               .filter((row) => row.Text === "TRUE")
               .map((row) => ({
-                feed: row.List,
+                list: row.List,
                 title: row.Title,
                 text: row.Text,
                 description: row.Description,
@@ -89,7 +89,7 @@ export default function ContextProvider({ children }) {
               // Create a single 'Cities' feed entry for the dropdown
               // Individual cities will be loaded as scenes when this feed is selected
               const citiesMedia = [{
-                feed: "cities",
+                list: "cities",
                 title: "Cities", 
                 text: "TRUE",
                 description: "Georgia cities with population and location data",
