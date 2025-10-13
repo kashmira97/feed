@@ -491,6 +491,33 @@
       min-width: 400px; // Ensure minimum width for content
     }
     
+    &.single-column {
+      .membersense-right-column {
+        display: none;
+      }
+
+      .membersense-left-column {
+        flex: 1;
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    &.expanded-overlay {
+      .membersense-left-column {
+        display: none;
+      }
+
+      .membersense-right-column {
+        flex: 1;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        border-left: none;
+      }
+    }
+
     // When narrow screen - show only right column at 100% width
     &.narrow-screen {
       .membersense-left-column {
@@ -504,39 +531,72 @@
       }
     }
 
-    .close-overlay-btn {
-      position: absolute;
-      top: 15px;
-      right: 15px; // Position in upper right of overlay content
-      background: none;
-      border: none;
-      font-size: 24px;
-      color: #666;
-      cursor: pointer;
-      z-index: 101;
-      width: 30px;
-      height: 30px;
+    .membersense-overlay-header {
       display: flex;
       align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition: all 0.2s ease;
+      gap: 12px;
+      padding: 18px 24px;
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.95);
+      z-index: 105;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.1);
+      .membersense-panel-close {
+        background: rgba(0, 0, 0, 0.05);
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        font-size: 20px;
+        font-weight: 600;
         color: #333;
-      }
-      
-      // Close button styling for narrow screens (when right column is full width)
-      &.narrow-close-btn {
-        background: rgba(255, 255, 255, 0.9);
-        color: #333;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-        
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s ease, transform 0.2s ease;
+
         &:hover {
-          background-color: rgba(255, 255, 255, 1);
-          color: #000;
+          background-color: rgba(0, 0, 0, 0.1);
+          transform: scale(1.05);
         }
+      }
+
+      .membersense-server-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 6px 10px;
+        border-radius: 999px;
+        transition: background-color 0.2s ease;
+        font-size: 16px;
+        color: #222;
+        font-weight: 600;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.05);
+        }
+
+        img {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+
+        span {
+          white-space: nowrap;
+        }
+      }
+
+      .membersense-header-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #222;
       }
     }
     
@@ -549,30 +609,33 @@
       padding: 20px;
       position: relative; // Enable absolute positioning for close button
       
-      // Close button for left content
-      .close-left-content-btn {
+      .membersense-expand-toggle {
         position: absolute;
-        top: 15px;
-        right: 15px;
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid rgba(0, 0, 0, 0.1);
+        top: 20px;
+        right: 20px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
-        width: 30px;
-        height: 30px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.92);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         z-index: 11;
-        color: #666;
-        font-size: 20px;
-        font-weight: bold;
+        color: #333;
         transition: all 0.2s ease;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 
         &:hover {
-          background: rgba(255, 255, 255, 1);
-          color: #333;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          background: #fff;
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+          transform: translateY(-1px);
+        }
+
+        i {
+          font-size: 22px;
+          line-height: 1;
         }
       }
     }

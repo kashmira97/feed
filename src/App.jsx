@@ -634,7 +634,7 @@ function App() {
   return (
     <ContextProvider>
       <div className={`App ${isFullScreen ? "fullscreen" : ""}`} ref={appRef}>
-        {isFullScreen ? (
+        {isFullScreen && currentView !== "FeedPlayer" ? (
           <div className="fullscreen-nav" ref={menuOpenRef}>
             {!isMenuOpen && (
               <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="menu-btn">
@@ -673,7 +673,7 @@ function App() {
               </div>
             )}
           </div>
-        ) : (
+        ) : !isFullScreen ? (
           <div className="nav-menu">
             <div className="VideoPlayer__toggleMenu" ref={menuRef}>
               {isMenu && (
@@ -713,7 +713,7 @@ function App() {
               )}
             </div>
           </div>
-        )}
+        ) : null}
         {/* Error message is now handled within the MemberSense overlay */}
         <main className={`app-content ${isTransitioning ? "fade-out" : "fade-in"}`}>{renderContent()}</main>
         {/* MemberSense overlay is now rendered inside FeedPlayer component */}

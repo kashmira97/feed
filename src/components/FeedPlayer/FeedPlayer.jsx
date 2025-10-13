@@ -129,14 +129,17 @@ function FeedPlayer({
   const [previousMediaState, setPreviousMediaState] = useState(null); // 35 - Store previous media state before View Page
   const [isNarrowScreen, setIsNarrowScreen] = useState(false); // 36 - Track narrow screen based on #playerRoot width
   const [showRightColumn, setShowRightColumn] = useState(true); // 37 - Control right column visibility
-  const [showControlsMenu, setShowControlsMenu] = useState(false); // 38 - Control menu visibility
+  const [isLeftPanelExpanded, setIsLeftPanelExpanded] = useState(false); // 38 - Track if left panel is expanded
+  const [showControlsMenu, setShowControlsMenu] = useState(false); // 39 - Control menu visibility
 
   // Reset right column visibility when overlay is shown
   useEffect(() => {
     if (showMemberSenseOverlay) {
       setShowRightColumn(true);
+      setIsLeftPanelExpanded(false);
     }
   }, [showMemberSenseOverlay]);
+
 
   const imageDuration = 4;
   const pageDuration = 10; // Pages last 10 seconds
@@ -2259,7 +2262,11 @@ function FeedPlayer({
         
         {/* MemberSense overlay */}
         {showMemberSenseOverlay && (
-          <div className={`membersense-overlay ${isNarrowScreen ? 'narrow-screen' : ''}`}>
+          <div
+            className={`membersense-overlay ${isNarrowScreen ? 'narrow-screen' : ''} ${
+              !showRightColumn ? 'single-column' : ''
+            } ${isLeftPanelExpanded ? 'expanded-overlay' : ''}`}
+          >
             <div className="membersense-left-column">
               {/* Error message positioned at bottom of left column - only on wide screens */}
               {memberSenseProps.error && !isNarrowScreen && (
@@ -2273,19 +2280,19 @@ function FeedPlayer({
               
               {/* Left column content - show Discord content if view is selected, otherwise show default */}
               <div className="membersense-left-content">
-                {/* Close button for left content - positioned in upper right */}
-                {memberSenseProps.sidePanelView && (
-                  <button 
-                    className="close-left-content-btn"
+                {!isNarrowScreen && !isLeftPanelExpanded && (
+                  <button
+                    className="membersense-expand-toggle"
                     onClick={() => {
-                      if (memberSenseProps.setSidePanelView) {
-                        memberSenseProps.setSidePanelView(null);
-                      }
+                      setIsLeftPanelExpanded(true);
+                      setShowRightColumn(true);
                     }}
+                    title="Expand overlay"
                   >
-                    ×
+                    <i className="ri-arrow-left-s-line"></i>
                   </button>
                 )}
+
                 <div className="membersense-content-box">
                   <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎬</div>
                   <p>Ready for Action</p>
@@ -2322,20 +2329,46 @@ function FeedPlayer({
               
               {/* Main MemberSense content */}
               <div className="membersense-overlay-content">
-                {/* Close button - positioned in upper right, always visible */}
-                <button 
-                  className={`close-overlay-btn ${isNarrowScreen ? 'narrow-close-btn' : ''}`}
-                  onClick={() => {
-                    // If Discord content is shown, clear it first, otherwise close entire overlay
-                    if (memberSenseProps.sidePanelView && memberSenseProps.setSidePanelView) {
-                      memberSenseProps.setSidePanelView(null);
-                    } else {
-                      setShowMemberSenseOverlay(false);
-                    }
-                  }}
-                >
-                  ×
-                </button>
+                <div className="membersense-overlay-header">
+                  <button
+                    type="button"
+                    className="membersense-panel-close"
+                    onClick={() => {
+                      if (memberSenseProps.sidePanelView && memberSenseProps.setSidePanelView) {
+                        memberSenseProps.setSidePanelView(null);
+                      } else {
+                        setShowMemberSenseOverlay(false);
+                      }
+                    }}
+                    title={memberSenseProps.sidePanelView ? "Close panel and return to video" : "Close overlay"}
+                  >
+                    ×
+                  </button>
+                  {memberSenseProps.sidePanelView ? (
+                    <button
+                      type="button"
+                      className="membersense-server-link"
+                      onClick={() => {
+                        if (memberSenseProps.setSidePanelView) {
+                          memberSenseProps.setSidePanelView(null);
+                        }
+                      }}
+                      title="Return to Discord group"
+                    >
+                      {memberSenseProps.serverInfo?.iconURL && (
+                        <img
+                          src={memberSenseProps.serverInfo.iconURL}
+                          alt={memberSenseProps.serverInfo?.serverName || "Discord Server"}
+                        />
+                      )}
+                      <span>{memberSenseProps.serverInfo?.serverName || "Discord Group"}</span>
+                    </button>
+                  ) : (
+                    <span className="membersense-header-title">
+                      {memberSenseProps.serverInfo?.serverName || "Discord Group"}
+                    </span>
+                  )}
+                </div>
                 
                 {/* Show Discord content in right column when sidePanelView is active */}
                 {memberSenseProps.sidePanelView === "Showcase" ? (
@@ -2345,11 +2378,6 @@ function FeedPlayer({
                       members={memberSenseProps.members || []} 
                       isLoading={memberSenseProps.isLoading} 
                       isFullScreen={false}
-                      onClose={() => {
-                        if (memberSenseProps.setSidePanelView) {
-                          memberSenseProps.setSidePanelView(null);
-                        }
-                      }}
                     />
                   </div>
                 ) : memberSenseProps.sidePanelView === "DiscordViewer" ? (
@@ -2361,11 +2389,6 @@ function FeedPlayer({
                       onChannelSelect={memberSenseProps.setSelectedChannel}
                       isLoading={memberSenseProps.isLoading}
                       isFullScreen={false}
-                      onClose={() => {
-                        if (memberSenseProps.setSidePanelView) {
-                          memberSenseProps.setSidePanelView(null);
-                        }
-                      }}
                     />
                   </div>
                 ) : (
@@ -2499,15 +2522,52 @@ function FeedPlayer({
               if (handleMenuClick) handleMenuClick("url");
             }}>
               <i className="ri-link"></i>
-              <span>Add URL</span>
+              <span>Paste Your Video URL</span>
             </li>
             <li className="controls-menu-item" onClick={() => {
               setShowControlsMenu(false);
-              setShowMemberSenseOverlay(true);
+              if (handleMenuClick) handleMenuClick("viewPage");
+            }}>
+              <i className="ri-video-line"></i>
+              <span>View Page</span>
+            </li>
+            <li className="controls-menu-item" onClick={() => {
+              setShowControlsMenu(false);
+              if (memberSenseProps.setSidePanelView) {
+                memberSenseProps.setSidePanelView(null);
+              }
+              if (setShowMemberSenseOverlay) {
+                setShowMemberSenseOverlay(true);
+              }
+              if (memberSenseProps.handleViewChange) {
+                memberSenseProps.handleViewChange("MemberSense");
+              }
             }}>
               <i className="ri-user-line"></i>
               <span>MemberSense</span>
             </li>
+            {isFullScreen && (
+              <li className="controls-menu-item" onClick={() => {
+                setShowControlsMenu(false);
+                toggleFullScreen();
+              }}>
+                <i className="ri-fullscreen-exit-line"></i>
+                <span>Exit Fullscreen</span>
+              </li>
+            )}
+            {memberSenseProps.onLogout &&
+              (memberSenseProps.isLoggedIn || memberSenseProps.initialToken) && (
+              <li className="controls-menu-item logout" onClick={() => {
+                setShowControlsMenu(false);
+                if (setShowMemberSenseOverlay) {
+                  setShowMemberSenseOverlay(false);
+                }
+                memberSenseProps.onLogout();
+              }}>
+                <i className="ri-logout-box-r-line"></i>
+                <span>Logout</span>
+              </li>
+            )}
           </ul>
         </div>
       )}
