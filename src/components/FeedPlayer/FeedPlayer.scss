@@ -552,6 +552,18 @@
         span {
           flex: 1;
         }
+
+        &.logout {
+          color: #e74c3c;
+
+          i {
+            color: inherit;
+          }
+
+          &:hover {
+            background-color: rgba(231, 76, 60, 0.1);
+          }
+        }
       }
     }
   }
