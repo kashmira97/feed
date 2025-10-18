@@ -2368,6 +2368,17 @@ function FeedPlayer({
                       {memberSenseProps.serverInfo?.serverName || "Discord Group"}
                     </span>
                   )}
+
+                  <button
+            className="expand-overlay-btn"
+            onClick={toggleFullScreen}
+          >
+            <i
+              className={`ri-${
+                isFullScreen ? "fullscreen-exit" : "fullscreen"
+              }-line`}
+            ></i>
+          </button>
                 </div>
                 
                 {/* Show Discord content in right column when sidePanelView is active */}
