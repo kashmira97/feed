@@ -471,7 +471,7 @@
 
     // Left column - wider, transparent background
     .membersense-left-column {
-     flex: 0 0 55%;
+     flex: 0 0 60%;
   max-width: 60%;
   display: flex;
   flex-direction: column;
@@ -483,7 +483,7 @@
     
     // Right column - narrower, contains main MemberSense content
     .membersense-right-column {
-       flex: 0 0 45%;
+       flex: 0 0 40%;
   max-width: 40%;
   display: flex;
   flex-direction: column;
